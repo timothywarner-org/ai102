@@ -1,0 +1,8 @@
+name: globomantics/javascript-security-queries
+version: 1.0.0
+description: "Globomantics JavaScript security queries for educational purposes"
+authors: "Globomantics Security Team"
+license: MIT
+dependencies:
+  codeql/javascript-all: "*"
+extractor: javascript

@@ -1,0 +1,380 @@
+// Rock Band Name Checker - Kusto Queries for Azure Log Analytics
+// These queries can be used with the Kusto extension in VS Code or in the Azure Portal
+// Workspace ID: 7f28cf83-d621-4c01-8ab6-06f9cda63c83
+
+//==============================================================================
+// PART 1: AZURE DIAGNOSTICS QUERIES (SERVICE-SIDE LOGS)
+//==============================================================================
+
+//------------------------------------------------------------------------------
+// A1. Basic Azure Diagnostics query for Content Safety TextAnalyze operations
+//------------------------------------------------------------------------------
+AzureDiagnostics
+| where ResourceProvider == "MICROSOFT.COGNITIVESERVICES"
+| where OperationName == "TextAnalyze"
+| sort by TimeGenerated desc
+| take 10
+
+//------------------------------------------------------------------------------
+// A2. Content Safety operations with response times and status codes
+//------------------------------------------------------------------------------
+AzureDiagnostics
+| where ResourceProvider == "MICROSOFT.COGNITIVESERVICES"
+| where Category == "RequestResponse" or Category == "Audit"
+| where OperationName == "TextAnalyze"
+| extend responseTime = DurationMs
+| extend statusCode = tostring(StatusCode)
+| extend userAgent = UserAgent_s
+| project TimeGenerated, OperationName, responseTime, statusCode, userAgent, CorrelationId
+| sort by TimeGenerated desc
+
+//------------------------------------------------------------------------------
+// A3. Content Safety operations by status code
+//------------------------------------------------------------------------------
+AzureDiagnostics
+| where ResourceProvider == "MICROSOFT.COGNITIVESERVICES"
+| where Category == "RequestResponse"
+| where OperationName == "TextAnalyze"
+| summarize count() by tostring(StatusCode)
+| render piechart
+
+//------------------------------------------------------------------------------
+// A4. Content Safety average response time by hour
+//------------------------------------------------------------------------------
+AzureDiagnostics
+| where ResourceProvider == "MICROSOFT.COGNITIVESERVICES"
+| where Category == "RequestResponse"
+| where OperationName == "TextAnalyze"
+| summarize avg(DurationMs) by bin(TimeGenerated, 1h)
+| render timechart
+
+//------------------------------------------------------------------------------
+// A5. Content Safety operations by client IP
+//------------------------------------------------------------------------------
+AzureDiagnostics
+| where ResourceProvider == "MICROSOFT.COGNITIVESERVICES"
+| where Category == "RequestResponse"
+| where OperationName == "TextAnalyze"
+| summarize count() by CallerIPAddress
+| sort by count_ desc
+
+//------------------------------------------------------------------------------
+// A6. Content Safety throttled requests
+//------------------------------------------------------------------------------
+AzureDiagnostics
+| where ResourceProvider == "MICROSOFT.COGNITIVESERVICES"
+| where Category == "RequestResponse"
+| where OperationName == "TextAnalyze"
+| where StatusCode == 429
+| project TimeGenerated, OperationName, DurationMs, StatusCode, CorrelationId
+
+//------------------------------------------------------------------------------
+// A7. Join application logs with Azure Diagnostics using CorrelationId
+//------------------------------------------------------------------------------
+let appLogs = traces
+| where customDimensions.service_name == "RockBandNameChecker"
+| where message == "Content safety analysis completed successfully"
+| extend requestId = tostring(customDimensions.request_id)
+| extend results = parse_json(tostring(customDimensions.results))
+| extend bandName = tostring(results.text)
+| project TimeGenerated, requestId, bandName;
+AzureDiagnostics
+| where ResourceProvider == "MICROSOFT.COGNITIVESERVICES"
+| where Category == "RequestResponse"
+| where OperationName == "TextAnalyze"
+| project TimeGenerated, CorrelationId, DurationMs, StatusCode
+| join kind=inner appLogs on $left.CorrelationId == $right.requestId
+| project TimeGenerated, bandName, DurationMs, StatusCode
+
+//==============================================================================
+// PART 2: APPLICATION LOGS (CLIENT-SIDE LOGS)
+//==============================================================================
+
+//------------------------------------------------------------------------------
+// 1. View all requests and their results
+//------------------------------------------------------------------------------
+traces
+| where customDimensions.service_name == "RockBandNameChecker"
+| where message == "Content safety analysis completed successfully"
+| extend requestId = tostring(customDimensions.request_id)
+| extend results = parse_json(tostring(customDimensions.results))
+| extend bandName = tostring(results.text)
+| extend isBlocked = results.categories.hate.is_blocked or 
+                     results.categories.sexual.is_blocked or 
+                     results.categories.violence.is_blocked or 
+                     results.categories.self_harm.is_blocked
+| project timestamp, bandName, isBlocked, results
+
+//------------------------------------------------------------------------------
+// 2. Count of approved vs. rejected band names
+//------------------------------------------------------------------------------
+traces
+| where customDimensions.service_name == "RockBandNameChecker"
+| where message == "Content safety analysis completed successfully"
+| extend results = parse_json(tostring(customDimensions.results))
+| extend bandName = tostring(results.text)
+| extend isBlocked = results.categories.hate.is_blocked or 
+                     results.categories.sexual.is_blocked or 
+                     results.categories.violence.is_blocked or 
+                     results.categories.self_harm.is_blocked
+| summarize count() by isBlocked
+| render piechart
+
+//------------------------------------------------------------------------------
+// 3. Average response time for content safety API
+//------------------------------------------------------------------------------
+traces
+| where customDimensions.service_name == "RockBandNameChecker"
+| where message == "Content safety analysis completed successfully"
+| extend duration_ms = todouble(customDimensions.duration_ms)
+| summarize avg(duration_ms), min(duration_ms), max(duration_ms)
+
+//------------------------------------------------------------------------------
+// 4. Most common rejection categories
+//------------------------------------------------------------------------------
+traces
+| where customDimensions.service_name == "RockBandNameChecker"
+| where message == "Content safety analysis completed successfully"
+| extend results = parse_json(tostring(customDimensions.results))
+| mvexpand category = bag_keys(results.categories)
+| extend categoryName = tostring(category)
+| extend isBlocked = results.categories[categoryName].is_blocked
+| where isBlocked == true
+| summarize count() by categoryName
+| render barchart
+
+//------------------------------------------------------------------------------
+// 5. Error analysis
+//------------------------------------------------------------------------------
+traces
+| where customDimensions.service_name == "RockBandNameChecker"
+| where severityLevel >= 3
+| extend error_code = tostring(customDimensions.error_code)
+| extend error_message = tostring(customDimensions.error_message)
+| project timestamp, error_code, error_message, customDimensions
+
+//------------------------------------------------------------------------------
+// 6. Band name length vs. rejection rate
+//------------------------------------------------------------------------------
+traces
+| where customDimensions.service_name == "RockBandNameChecker"
+| where message == "Content safety analysis completed successfully"
+| extend results = parse_json(tostring(customDimensions.results))
+| extend bandName = tostring(results.text)
+| extend nameLength = strlen(bandName)
+| extend isBlocked = results.categories.hate.is_blocked or 
+                     results.categories.sexual.is_blocked or 
+                     results.categories.violence.is_blocked or 
+                     results.categories.self_harm.is_blocked
+| summarize count(), blockedCount = countif(isBlocked == true) by nameLength
+| extend blockRate = blockedCount * 100.0 / count_
+| project nameLength, count_, blockedCount, blockRate
+| order by nameLength asc
+| render columnchart
+
+//------------------------------------------------------------------------------
+// 7. Service performance over time (hourly)
+//------------------------------------------------------------------------------
+traces
+| where customDimensions.service_name == "RockBandNameChecker"
+| where message == "Content safety analysis completed successfully"
+| extend duration_ms = todouble(customDimensions.duration_ms)
+| summarize count(), avg(duration_ms) by bin(timestamp, 1h)
+| render timechart
+
+//------------------------------------------------------------------------------
+// 8. Severity distribution across categories
+//------------------------------------------------------------------------------
+traces
+| where customDimensions.service_name == "RockBandNameChecker"
+| where message == "Content safety analysis completed successfully"
+| extend results = parse_json(tostring(customDimensions.results))
+| mvexpand category = bag_keys(results.categories)
+| extend categoryName = tostring(category)
+| extend severity = results.categories[categoryName].severity
+| summarize count() by categoryName, severity
+| render columnchart
+
+//------------------------------------------------------------------------------
+// 9. Requests by environment (development, test, production)
+//------------------------------------------------------------------------------
+traces
+| where customDimensions.service_name == "RockBandNameChecker"
+| extend environment = tostring(customDimensions.environment)
+| summarize count() by environment
+| render piechart
+
+//------------------------------------------------------------------------------
+// 10. Diagnostic settings validation - check if logs are flowing
+//------------------------------------------------------------------------------
+traces
+| where customDimensions.service_name == "RockBandNameChecker"
+| summarize count() by bin(timestamp, 1h)
+| render timechart
+
+//==============================================================================
+// ADVANCED AZURE DIAGNOSTICS QUERIES FOR CONTENT SAFETY MONITORING
+//==============================================================================
+
+//------------------------------------------------------------------------------
+// M1. Resource utilization by operation type
+//------------------------------------------------------------------------------
+AzureDiagnostics
+| where ResourceProvider == "MICROSOFT.COGNITIVESERVICES"
+| summarize count() by OperationName
+| render piechart
+
+//------------------------------------------------------------------------------
+// M2. Error rate over time
+//------------------------------------------------------------------------------
+AzureDiagnostics
+| where ResourceProvider == "MICROSOFT.COGNITIVESERVICES"
+| where Category == "RequestResponse"
+| extend isError = StatusCode >= 400
+| summarize requests = count(), 
+          errorCount = countif(isError == true) 
+          by bin(TimeGenerated, 1h)
+| extend errorRate = errorCount * 100.0 / requests
+| project TimeGenerated, requests, errorCount, errorRate
+| render timechart
+
+//------------------------------------------------------------------------------
+// M3. Detailed error analysis by status code
+//------------------------------------------------------------------------------
+AzureDiagnostics
+| where ResourceProvider == "MICROSOFT.COGNITIVESERVICES"
+| where Category == "RequestResponse"
+| where StatusCode >= 400
+| extend statusCodeStr = tostring(StatusCode)
+| summarize count() by statusCodeStr, OperationName
+| sort by count_ desc
+
+//------------------------------------------------------------------------------
+// M4. P50, P90, P95, P99 response times
+//------------------------------------------------------------------------------
+AzureDiagnostics
+| where ResourceProvider == "MICROSOFT.COGNITIVESERVICES"
+| where Category == "RequestResponse"
+| where OperationName == "TextAnalyze"
+| summarize percentiles(DurationMs, 50, 90, 95, 99)
+
+//------------------------------------------------------------------------------
+// M5. Throttling analysis - requests near quota limits
+//------------------------------------------------------------------------------
+AzureDiagnostics
+| where ResourceProvider == "MICROSOFT.COGNITIVESERVICES"
+| where Category == "RequestResponse"
+| where StatusCode == 429 or StatusCode == 503
+| extend throttleReason = tostring(split(Message, ":").[1])
+| summarize count() by bin(TimeGenerated, 5m), throttleReason
+| render timechart
+
+//------------------------------------------------------------------------------
+// M6. Geographic distribution of requests
+//------------------------------------------------------------------------------
+AzureDiagnostics
+| where ResourceProvider == "MICROSOFT.COGNITIVESERVICES"
+| where Category == "RequestResponse"
+| extend clientCountry = tostring(split(CallerIPAddress, ":").[0])
+| summarize count() by clientCountry
+| sort by count_ desc
+| render piechart
+
+//------------------------------------------------------------------------------
+// M7. Request volume patterns by hour of day and day of week
+//------------------------------------------------------------------------------
+AzureDiagnostics
+| where ResourceProvider == "MICROSOFT.COGNITIVESERVICES"
+| where Category == "RequestResponse"
+| extend hourOfDay = datetime_part("Hour", TimeGenerated)
+| extend dayOfWeek = dayofweek(TimeGenerated)
+| summarize requestCount = count() by hourOfDay, dayOfWeek
+| render heatmap
+
+//------------------------------------------------------------------------------
+// M8. Correlation between request payload size and response time
+//------------------------------------------------------------------------------
+AzureDiagnostics
+| where ResourceProvider == "MICROSOFT.COGNITIVESERVICES"
+| where Category == "RequestResponse"
+| where OperationName == "TextAnalyze"
+| extend payloadSize = toint(RequestSize_d)
+| summarize avg(DurationMs) by bin(payloadSize, 100)
+| render scatterchart
+
+//------------------------------------------------------------------------------
+// M9. Service health - success rate over time
+//------------------------------------------------------------------------------
+AzureDiagnostics
+| where ResourceProvider == "MICROSOFT.COGNITIVESERVICES"
+| where Category == "RequestResponse"
+| extend isSuccess = StatusCode < 400
+| summarize requests = count(), 
+          successCount = countif(isSuccess == true) 
+          by bin(TimeGenerated, 1h)
+| extend successRate = successCount * 100.0 / requests
+| project TimeGenerated, requests, successRate
+| render timechart
+
+//------------------------------------------------------------------------------
+// M10. Anomaly detection - unusual response time patterns
+//------------------------------------------------------------------------------
+AzureDiagnostics
+| where ResourceProvider == "MICROSOFT.COGNITIVESERVICES"
+| where Category == "RequestResponse"
+| where OperationName == "TextAnalyze"
+| summarize avg(DurationMs) by bin(TimeGenerated, 5m)
+| render anomalychart with (anomalycolumns=avg_DurationMs)
+
+//------------------------------------------------------------------------------
+// M11. Join with App Insights availability tests
+//------------------------------------------------------------------------------
+let availabilityTests = requests
+| where operation_Name contains "Availability" 
+| where cloud_RoleName contains "ContentSafety"
+| project timestamp, success = success == true, duration, operation_Name;
+AzureDiagnostics
+| where ResourceProvider == "MICROSOFT.COGNITIVESERVICES"
+| where Category == "RequestResponse"
+| summarize avgDuration = avg(DurationMs), count() by bin(TimeGenerated, 15m)
+| join kind=fullouter availabilityTests on $left.TimeGenerated == $right.timestamp
+| project TimeGenerated=coalesce(TimeGenerated, timestamp), 
+          serviceDuration=avgDuration, 
+          testDuration=duration, 
+          testSuccess=success,
+          requestCount=count_
+| render timechart
+
+//------------------------------------------------------------------------------
+// M12. Comprehensive service health dashboard
+//------------------------------------------------------------------------------
+let timeRange = 24h;
+let timeBin = 15m;
+let data = AzureDiagnostics
+| where TimeGenerated > ago(timeRange)
+| where ResourceProvider == "MICROSOFT.COGNITIVESERVICES"
+| where Category == "RequestResponse";
+let successRate = data
+| extend isSuccess = StatusCode < 400
+| summarize requests = count(), 
+          successCount = countif(isSuccess == true) 
+          by bin(TimeGenerated, timeBin)
+| extend successRate = successCount * 100.0 / requests
+| project TimeGenerated, successRate;
+let latency = data
+| summarize p50=percentile(DurationMs, 50), 
+          p95=percentile(DurationMs, 95), 
+          p99=percentile(DurationMs, 99) 
+          by bin(TimeGenerated, timeBin);
+let volume = data
+| summarize count() by bin(TimeGenerated, timeBin)
+| project TimeGenerated, requestVolume=count_;
+let errors = data
+| where StatusCode >= 400
+| summarize errorCount=count() by bin(TimeGenerated, timeBin), StatusCode
+| project TimeGenerated, StatusCode, errorCount;
+successRate
+| join kind=fullouter latency on TimeGenerated
+| join kind=fullouter volume on TimeGenerated
+| project TimeGenerated, successRate, p50, p95, p99, requestVolume
+| render timechart

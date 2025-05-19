@@ -1,0 +1,41 @@
+{
+  "name": "woodgrove-bank",
+  "version": "1.0.0",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node image-analysis-app.js",
+    "dev": "nodemon image-analysis-app.js",
+    "dev:video": "nodemon video-indexer-ai102-demo.js",
+    "language-demo": "node language-demo.js",
+    "speech-demo": "node speech-to-text-demo.js",
+    "speech-web": "node speech-web-server.js",
+    "speech-web:dev": "nodemon speech-web-server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@azure/ai-language-text": "^1.1.0",
+    "@azure/cosmos": "^4.3.0",
+    "@azure/storage-blob": "^12.27.0",
+    "axios": "^1.9.0",
+    "body-parser": "^2.2.0",
+    "chalk": "^4.1.2",
+    "cli-progress": "^3.12.0",
+    "dotenv": "^16.5.0",
+    "express": "^5.1.0",
+    "ffmpeg-static": "^5.2.0",
+    "fluent-ffmpeg": "^2.1.2",
+    "microsoft-cognitiveservices-speech-sdk": "^1.43.1",
+    "multer": "^1.4.5-lts.2",
+    "node-fetch": "^2.7.0"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "kill-port": "^2.0.1",
+    "morgan": "^1.10.0",
+    "nodemon": "^3.1.10"
+  }
+}

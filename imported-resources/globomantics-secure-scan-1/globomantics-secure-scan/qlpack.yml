@@ -1,0 +1,6 @@
+name: timothywarner-org/globomantics-secure-scan
+version: 1.0.0
+description: "Globomantics Custom Security Query Pack for JavaScript"
+dependencies:
+  codeql/javascript-all: "*"
+library: false 

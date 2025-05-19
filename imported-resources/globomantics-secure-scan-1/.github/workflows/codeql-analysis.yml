@@ -1,0 +1,44 @@
+name: "CodeQL Analysis"
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    - cron: '0 0 * * 0'  # Run once a week on Sunday at midnight
+  workflow_dispatch:  # Allow manual triggering
+
+jobs:
+  analyze:
+    name: Analyze
+    runs-on: ubuntu-latest
+    permissions:
+      # Required for all workflows
+      security-events: write
+      # Only needed for upload-artifact and download-artifact actions
+      contents: read
+      actions: read
+      
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [ 'javascript' ]
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+      
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v3
+      with:
+        languages: javascript
+
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v3
+
+    - name: Upload CodeQL database
+      uses: actions/upload-artifact@v4
+      with:
+        name: codeql-database
+        path: /home/runner/work/_temp/codeql_databases

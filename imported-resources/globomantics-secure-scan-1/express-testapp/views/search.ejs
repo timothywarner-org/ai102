@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %></title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <header>
+    <div class="container">
+      <h1>Globomantics Security Test App</h1>
+    </div>
+  </header>
+  
+  <main class="container">
+    <section>
+      <h2>Search Results</h2>
+      
+      <div class="search-form">
+        <form action="/search" method="GET">
+          <div class="form-group">
+            <label for="searchQuery">Search Query:</label>
+            <input type="text" id="searchQuery" name="q" value="<%= query %>" required>
+          </div>
+          <button type="submit" class="btn">Search</button>
+        </form>
+      </div>
+      
+      <!-- VULNERABILITY: XSS vulnerability by rendering user input without sanitization -->
+      <div class="search-summary">
+        <p>You searched for: <strong><%- query %></strong></p>
+      </div>
+      
+      <div class="search-results">
+        <% if (results && results.length > 0) { %>
+          <h3>Found <%= results.length %> results:</h3>
+          <ul>
+            <% results.forEach(function(result) { %>
+              <li>
+                <h4><%= result.title %></h4>
+                <p><%= result.description %></p>
+              </li>
+            <% }); %>
+          </ul>
+        <% } else { %>
+          <p>No results found for your query.</p>
+        <% } %>
+      </div>
+      
+      <div class="search-help">
+        <h3>Search Help</h3>
+        <p>Enter keywords to search for content on our site.</p>
+        
+        <!-- VULNERABILITY: Unsafe input rendering through unescaped output -->
+        <div class="search-tips">
+          <h4>Recent Searches</h4>
+          <p>Users have recently searched for:</p>
+          <script>
+            // VULNERABILITY: Creating HTML from user input
+            document.write('<ul><li><%- query %></li><li>Example search</li></ul>');
+          </script>
+        </div>
+      </div>
+    </section>
+    
+    <section>
+      <h2>Advanced Search Features</h2>
+      <p>Try these search operators:</p>
+      <ul>
+        <li><strong>AND</strong> - Combine search terms (e.g., security AND testing)</li>
+        <li><strong>OR</strong> - Find either term (e.g., security OR testing)</li>
+        <li><strong>NOT</strong> - Exclude terms (e.g., security NOT testing)</li>
+      </ul>
+    </section>
+    
+    <a href="/" class="btn">Back to Home</a>
+  </main>
+  
+  <footer>
+    <div class="container">
+      <p>&copy; 2023 Globomantics Security - For Educational Purposes Only</p>
+    </div>
+  </footer>
+  
+  <script src="/js/app.js"></script>
+</body>
+</html> 

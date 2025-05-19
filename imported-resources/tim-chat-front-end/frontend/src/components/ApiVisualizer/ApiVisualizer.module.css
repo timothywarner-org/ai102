@@ -1,0 +1,85 @@
+.title {
+  color: #323130;
+  margin-bottom: 20px;
+}
+
+.section {
+  margin: 20px 0;
+  width: 100%;
+}
+
+.tokenSummary {
+  margin-bottom: 24px;
+}
+
+.tokenMetric {
+  text-align: center;
+  padding: 16px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  min-width: 120px;
+}
+
+.tokenCount {
+  font-size: 24px !important;
+  font-weight: 600 !important;
+  color: #0078d4;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.tokenVisualization {
+  margin: 24px 0;
+}
+
+.tokenBar {
+  height: 24px;
+  background: #f0f0f0;
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+}
+
+.promptBar {
+  height: 100%;
+  background: #0078d4;
+  transition: width 0.3s ease;
+}
+
+.completionBar {
+  height: 100%;
+  background: #2b88d8;
+  transition: width 0.3s ease;
+}
+
+.tokenBarLabels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  color: #616161;
+  font-size: 12px;
+}
+
+.tokenDetails {
+  margin-top: 24px;
+  padding: 16px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.tokenDetails span {
+  color: #616161;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+@media (max-width: 480px) {
+  .tokenSummary {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .tokenMetric {
+    width: 100%;
+  }
+} 

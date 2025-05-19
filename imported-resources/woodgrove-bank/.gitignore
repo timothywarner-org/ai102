@@ -1,0 +1,23 @@
+# Tim's stuff
+node_modules
+cognitive-services-sample-data-files-master
+woodgrove-bank-demo-app
+
+# Node stuff
+package-lock.json
+
+# Azure stuff
+.env
+
+
+doc-intel/uploads/26b745cb36efb6eb10d0918cd6af75fa
+doc-intel/server.js
+doc-intel/uploads/70de1faba2fb5f107e6b2a89ca18babc
+doc-intel/uploads/75d4056352202caed73f79001f2404a2
+doc-intel/uploads/825dd80ed8ee30d6944b2cb9acec20fa
+doc-intel/uploads/40599b31b83e313edc871d9525e6510b
+doc-intel/uploads/02911077eb20db775c14ac6135aadde5
+doc-intel/uploads/a4931df7d86eb706c62f82010dd67f81
+doc-intel/uploads/ac7634d5d39c390a76ac10bb19b54590
+doc-intel/uploads/e221562bc96d906bed932f5b47a74b8b
+doc-intel/uploads/f11bb48cd1cc1edaae982f35f47b3615

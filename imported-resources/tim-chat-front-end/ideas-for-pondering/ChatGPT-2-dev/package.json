@@ -1,0 +1,38 @@
+{
+  "name": "chatgpt",
+  "private": true,
+  "version": "2.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "tauri": "tauri"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "2.0.0-beta.15",
+    "@tauri-apps/plugin-os": "2.0.0-beta.7",
+    "@tauri-apps/plugin-shell": "2.0.0-beta.8",
+    "clsx": "^2.1.1",
+    "lodash": "^4.17.21",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-hotkeys-hook": "^4.5.0",
+    "react-router-dom": "^6.23.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/typography": "^0.5.13",
+    "@tauri-apps/cli": "2.0.0-beta.22",
+    "@types/lodash": "^4.17.1",
+    "@types/node": "^20.12.12",
+    "@types/react": "^18.3.1",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.2.1",
+    "autoprefixer": "^10.4.19",
+    "postcss": "^8.4.38",
+    "tailwindcss": "^3.4.3",
+    "typescript": "^5.4.5",
+    "vite": "^5.2.11",
+    "vite-tsconfig-paths": "^4.3.2"
+  }
+}

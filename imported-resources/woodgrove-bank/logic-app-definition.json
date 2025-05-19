@@ -1,0 +1,105 @@
+{
+  "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "actions": {
+          "HTTP": {
+              "type": "Http",
+              "inputs": {
+                  "uri": "https://twai102contentsafety1.cognitiveservices.azure.com/contentsafety/text:analyze?api-version=2024-09-01",
+                  "method": "POST",
+                  "headers": {
+                      "Ocp-Apim-Subscription-Key": "7GCRHrt7JORY2ktu7rQx4IeWVAM2Y5QjchNPxjGB1ULXgwoitighJQQJ99BDACYeBjFXJ3w3AAAHACOGvoMZ",
+                      "Content-Type": "application/json"
+                  },
+                  "body": {
+                      "text": "@triggerBody()?['text']",
+                      "categories": [
+                          "Hate",
+                          "Sexual",
+                          "SelfHarm",
+                          "Violence"
+                      ],
+                      "blocklistNames": [],
+                      "haltOnBlocklistHit": false,
+                      "outputType": "FourSeverityLevels"
+                  }
+              },
+              "runAfter": {},
+              "runtimeConfiguration": {
+                  "contentTransfer": {
+                      "transferMode": "Chunked"
+                  }
+              }
+          },
+          "Send_an_email_(V2)": {
+              "type": "ApiConnection",
+              "inputs": {
+                  "host": {
+                      "connection": {
+                          "referenceName": "outlook"
+                      }
+                  },
+                  "method": "post",
+                  "body": {
+                      "To": "timothywarner316@gmail.com",
+                      "Subject": "Content Safety Report",
+                      "Body": "<h3>Submitted Text:</h3><p>@{triggerBody()?['text']}</p><h3>Moderation Results:</h3><ul><li>Hate: @{body('HTTP')?['categoriesAnalysis'][0]?['severity']}</li><li>Sexual: @{body('HTTP')?['categoriesAnalysis'][1]?['severity']}</li><li>SelfHarm: @{body('HTTP')?['categoriesAnalysis'][2]?['severity']}</li><li>Violence: @{body('HTTP')?['categoriesAnalysis'][3]?['severity']}</li></ul>",
+                      "Importance": "Normal"
+                  },
+                  "path": "/v2/Mail"
+              },
+              "runAfter": {
+                  "HTTP": [
+                      "SUCCEEDED"
+                  ]
+              }
+          },
+          "Send_an_email_(V2)_1": {
+              "type": "ApiConnection",
+              "inputs": {
+                  "host": {
+                      "connection": {
+                          "referenceName": "office365"
+                      }
+                  },
+                  "method": "post",
+                  "body": {
+                      "To": "tim@techtrainertim.com",
+                      "Subject": "Azure AI Content Safety Report",
+                      "Body": "<h3>Submitted Text:</h3><p>@{triggerBody()?['text']}</p><h3>Moderation Results:</h3><ul><li>Hate: @{body('HTTP')?['categoriesAnalysis'][0]?['severity']}</li><li>Sexual: @{body('HTTP')?['categoriesAnalysis'][1]?['severity']}</li><li>SelfHarm: @{body('HTTP')?['categoriesAnalysis'][2]?['severity']}</li><li>Violence: @{body('HTTP')?['categoriesAnalysis'][3]?['severity']}</li></ul>",
+                      "Importance": "Normal"
+                  },
+                  "path": "/v2/Mail"
+              },
+              "runAfter": {
+                  "Send_an_email_(V2)": [
+                      "SUCCEEDED"
+                  ]
+              }
+          }
+      },
+      "contentVersion": "1.0.0.0",
+      "outputs": {},
+      "triggers": {
+          "When_a_HTTP_request_is_received": {
+              "type": "Request",
+              "kind": "Http",
+              "inputs": {
+                  "method": "POST",
+                  "schema": {
+                      "type": "object",
+                      "properties": {
+                          "text": {
+                              "type": "string"
+                          }
+                      },
+                      "required": [
+                          "text"
+                      ]
+                  }
+              }
+          }
+      }
+  },
+  "kind": "Stateful"
+}
