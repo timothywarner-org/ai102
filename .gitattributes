@@ -1,0 +1,34 @@
+# .gitattributes for AI-102 Course Repo
+# This file enforces consistent line endings and file handling across platforms.
+# See: https://git-scm.com/docs/gitattributes
+
+# --- Core Rules ---
+
+# Use LF (Unix-style) for all code, scripts, and markdown for maximum compatibility
+*.js     text eol=lf      # JavaScript source code
+*.json   text eol=lf      # JSON config/data files
+*.ts     text eol=lf      # TypeScript source code
+*.py     text eol=lf      # Python scripts
+*.sh     text eol=lf      # Shell scripts (critical for Linux/WSL)
+*.md     text eol=lf      # Markdown docs
+*.yml    text eol=lf      # YAML config/workflows
+*.yaml   text eol=lf
+*.env    text eol=lf      # Environment files
+
+# Use CRLF (Windows-style) only for Windows batch files
+*.bat    text eol=crlf    # Windows batch scripts
+
+# Images and binaries should be treated as binary (no line ending conversion)
+*.png    binary
+*.jpg    binary
+*.jpeg   binary
+*.gif    binary
+*.ico    binary
+*.pdf    binary
+
+# --- Explanations for Learners ---
+# - 'text eol=lf': Always use LF line endings (best for cross-platform dev)
+# - 'text eol=crlf': Use CRLF only for Windows batch files
+# - 'binary': Prevents Git from trying to convert line endings in images/binaries
+#
+# Why? Consistent line endings prevent bugs, merge conflicts, and script failures—especially when collaborating across Windows, macOS, and Linux. 
