@@ -5,10 +5,10 @@ const { BlobServiceClient } = require('@azure/storage-blob');
 const fs = require('fs');
 require('dotenv').config();
 
-const account = process.env.AZURE_STORAGE_ACCOUNT || 'techtrainertimstorage';
+const account = process.env.AZURE_STORAGE_ACCOUNT || '';
 const containerName = process.env.AZURE_STORAGE_CONTAINER || 'demos';
 
-const connectionString = 'DefaultEndpointsProtocol=https;AccountName=techtrainertimstorage;AccountKey=0dPG1eOlIj7cl1H8wJa8v3JR7kFgxBaRXX26xyu///LBDrCZ8uRN/pU9JA9w8z5GeLAhoHnwzPnM+AStdeaMCQ==;EndpointSuffix=core.windows.net';
+const connectionString = '<your-connection-string>';
 
 const blobServiceClient = BlobServiceClient.fromConnectionString(connectionString);
 
