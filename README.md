@@ -4,9 +4,12 @@
 </p>
 
 <p align="center">
-  <a href="https://www.linkedin.com/in/techtrainertim/"><img src="https://img.shields.io/badge/LinkedIn-TechTrainerTim-blue?logo=linkedin" alt="LinkedIn"></a>
-  <a href="https://www.youtube.com/c/TechTrainerTim"><img src="https://img.shields.io/badge/YouTube-TechTrainerTim-red?logo=youtube" alt="YouTube"></a>
-  <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-green.svg" alt="MIT License"></a>
+  <a href="https://TechTrainerTim.com"><img src="https://img.shields.io/badge/Website-TechTrainerTim.com-1e90ff?logo=google-chrome&logoColor=white" alt="TechTrainerTim.com"></a>
+  <a href="https://www.youtube.com/c/TechTrainerTim"><img src="https://img.shields.io/badge/YouTube-Subscribe-ff0000?logo=youtube&logoColor=white" alt="YouTube"></a>
+  <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-brightgreen?logo=open-source-initiative&logoColor=white" alt="MIT License"></a>
+  <a href="https://www.linkedin.com/in/timothywarner"><img src="https://img.shields.io/badge/LinkedIn-timothywarner-0077b5?logo=linkedin&logoColor=white" alt="LinkedIn"></a>
+  <a href="https://discord.com/users/timwarner1"><img src="https://img.shields.io/badge/Discord-timwarner1-5865F2?logo=discord&logoColor=white" alt="Discord"></a>
+  <a href="https://mvp.microsoft.com/en-US/mvp/profile/e9a13bca-2798-4247-be56-f116f780869d"><img src="https://img.shields.io/badge/Microsoft%20MVP-2024-blueviolet?logo=microsoft&logoColor=white" alt="Microsoft MVP Profile"></a>
 </p>
 
 # AI-102: Designing and Implementing a Microsoft Azure AI Solution
@@ -17,12 +20,6 @@ Welcome! This is the official public repo for my Microsoft Press video course, *
 > Friendly, human, and neurodivergent-friendly—just like Tim Warner's teaching style.  
 > Emoji? Yes, but not too many. Clarity? Always.
 
----
-
-## 🧑‍💻 Contact & Social
-- [LinkedIn](https://www.linkedin.com/in/techtrainertim/)
-- [YouTube](https://www.youtube.com/c/TechTrainerTim)
-- [timw.info](https://timw.info)
 
 ---
 
