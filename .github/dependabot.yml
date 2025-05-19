@@ -10,8 +10,8 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"   # Options: daily, weekly, monthly
-      day: "sunday"        # Run on Sundays
-      time: "06:00"        # UTC time
+      day: "saturday"      # Run on Saturdays
+      time: "09:00"        # 3am Central Time (UTC-6) = 09:00 UTC
     open-pull-requests-limit: 5
     commit-message:
       prefix: "chore(deps)"
@@ -26,7 +26,7 @@ updates:
   # To add more directories, copy the block above and change 'directory'
 
 # Learner Notes:
-# - Dependabot will check for outdated npm dependencies every Sunday.
+# - Dependabot will check for outdated npm dependencies every Saturday at 3am Central Time (09:00 UTC).
 # - It will create PRs for updates, which you can review and merge.
 # - You can trigger a manual scan in the GitHub UI (Security > Dependabot).
 # - For more info: https://docs.github.com/en/code-security/supply-chain-security/keeping-your-dependencies-updated-automatically
