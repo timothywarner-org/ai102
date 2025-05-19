@@ -7,8 +7,10 @@
 
 ## Code Samples
 
-> Place your lesson-aligned code samples and demos here.
+### node-demo
+Simple command line utility that calls an Azure OpenAI deployment.
 
-## Instructions
-- Add a brief description of each code sample.
-- Include setup or environment variable notes if needed. 
+1. Copy `.env.sample` to `.env` and fill in your Azure OpenAI details.
+2. Run `node generate.js "Your prompt"` inside the `node-demo` folder.
+
+The script prints the model's generated text.

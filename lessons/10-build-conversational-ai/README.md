@@ -6,8 +6,10 @@
 
 ## Code Samples
 
-> Place your lesson-aligned code samples and demos here.
+### node-demo
+An Echo Bot implemented with the Bot Framework SDK for Node.js.
 
-## Instructions
-- Add a brief description of each code sample.
-- Include setup or environment variable notes if needed. 
+1. Copy `.env.sample` to `.env` and provide your Bot Channel credentials.
+2. Run `node index.js` in the `node-demo` folder and connect using the Bot Framework Emulator.
+
+The bot echoes back whatever the user types.

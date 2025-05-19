@@ -6,8 +6,10 @@
 
 ## Code Samples
 
-> Place your lesson-aligned code samples and demos here.
+### node-demo
+A minimal Node.js script that sends an image to an Azure Custom Vision model for classification.
 
-## Instructions
-- Add a brief description of each code sample.
-- Include setup or environment variable notes if needed. 
+1. Copy `.env.sample` to `.env` and add your Custom Vision credentials.
+2. Run `node app.js <path-to-image>` inside the `node-demo` folder.
+
+The script outputs predicted tags and probabilities.
