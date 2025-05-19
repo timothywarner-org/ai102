@@ -6,8 +6,10 @@
 
 ## Code Samples
 
-> Place your lesson-aligned code samples and demos here.
+### node-demo
+Command line script that translates text using Azure Translator.
 
-## Instructions
-- Add a brief description of each code sample.
-- Include setup or environment variable notes if needed. 
+1. Copy `.env.sample` to `.env` and add your Translator endpoint and key.
+2. Run `node translate.js "Hello world"` in the `node-demo` folder.
+
+The output shows the translated text in JSON format.
