@@ -4,19 +4,33 @@
 
 # --- Core Rules ---
 
-# Use LF (Unix-style) for all code, scripts, and markdown for maximum compatibility
-*.js     text eol=lf      # JavaScript source code
-*.json   text eol=lf      # JSON config/data files
-*.ts     text eol=lf      # TypeScript source code
-*.py     text eol=lf      # Python scripts
-*.sh     text eol=lf      # Shell scripts (critical for Linux/WSL)
-*.md     text eol=lf      # Markdown docs
-*.yml    text eol=lf      # YAML config/workflows
-*.yaml   text eol=lf
-*.env    text eol=lf      # Environment files
+# JavaScript source code
+*.js     text eol=lf
 
-# Use CRLF (Windows-style) only for Windows batch files
-*.bat    text eol=crlf    # Windows batch scripts
+# JSON config/data files
+*.json   text eol=lf
+
+# TypeScript source code
+*.ts     text eol=lf
+
+# Python scripts
+*.py     text eol=lf
+
+# Shell scripts (critical for Linux/WSL)
+*.sh     text eol=lf
+
+# Markdown docs
+*.md     text eol=lf
+
+# YAML config/workflows
+*.yml    text eol=lf
+*.yaml   text eol=lf
+
+# Environment files
+*.env    text eol=lf
+
+# Windows batch scripts
+*.bat    text eol=crlf
 
 # Images and binaries should be treated as binary (no line ending conversion)
 *.png    binary
