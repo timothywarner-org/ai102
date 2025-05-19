@@ -14,7 +14,7 @@
 
 # AI-102: Designing and Implementing a Microsoft Azure AI Solution
 
-Welcome! This is the official public repo for my Microsoft Press video course, **Exam AI-102: Designing and Implementing a Microsoft Azure AI Solution**.
+Welcome! This is the official learning hub for my Microsoft Press video course, **Exam AI-102: Designing and Implementing a Microsoft Azure AI Solution**.
 
 > **Delight is the name of the game.**  
 > Friendly, human, and neurodivergent-friendly—just like Tim Warner's teaching style.  
