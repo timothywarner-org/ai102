@@ -33,7 +33,25 @@ import contextlib
 import logging
 import os
 import sys
+import warnings
 from typing import Annotated
+
+# Agent Framework currently emits experimental API warnings at import time for
+# skill and harness internals used by the GA Foundry path. Filter those known
+# framework notices before import so the recorded demo output stays focused while
+# Python still reports unrelated warnings.
+warnings.filterwarnings(
+    "ignore",
+    message=r"\[SKILLS\].*experimental",
+    category=Warning,
+    module=r"agent_framework\._skills",
+)
+warnings.filterwarnings(
+    "ignore",
+    message=r"\[HARNESS\].*experimental",
+    category=Warning,
+    module=r"agent_framework\._harness\..*",
+)
 
 from agent_framework import Agent, tool
 from agent_framework.foundry import FoundryChatClient
@@ -63,6 +81,26 @@ KB_CONTENT = (
     b"Contoso support policy: customers on the Premium plan are entitled to a full "
     b"refund within 30 days of purchase. Standard plan refunds are issued as store credit only."
 )
+# Stable name for the managed vector store, so a re-run can find and sweep prior copies.
+VSTORE_NAME = "m01-kb"
+
+
+async def sweep_kb_resources(client) -> tuple[int, int]:
+    """Delete every ``m01-kb`` vector store and KB file; idempotent when none exist.
+
+    Called twice: before create (so a prior crashed run can't leave duplicate stores
+    or files behind) and at the end (so the demo leaves nothing behind). Collect each
+    list fully before deleting -- deleting mid-iteration invalidates the paging cursor.
+    """
+    stale_vstores = [vs async for vs in client.client.vector_stores.list() if vs.name == VSTORE_NAME]
+    for vs in stale_vstores:
+        with contextlib.suppress(Exception):
+            await client.client.vector_stores.delete(vector_store_id=vs.id)
+    stale_files = [f async for f in client.client.files.list() if f.filename == KB_FILENAME]
+    for f in stale_files:
+        with contextlib.suppress(Exception):
+            await client.client.files.delete(file_id=f.id)
+    return len(stale_vstores), len(stale_files)
 
 
 # ---- LO4: a custom TOOL, with an approval gate (the guardrail from the slides) ----
@@ -108,13 +146,17 @@ async def main() -> None:
 
     # LO3 -- RETRIEVAL. Upload a knowledge file, index it into a managed vector store,
     # and expose it as a file-search tool the agent grounds its answers on.
+    # Idempotent: sweep any leftovers from a prior crashed run first, so re-running
+    # never piles up duplicate stores or files.
+    swept_vs, swept_f = await sweep_kb_resources(client)
     file = await client.client.files.create(file=(KB_FILENAME, KB_CONTENT), purpose="assistants")
     vstore = await client.client.vector_stores.create(
-        name="m01-kb", expires_after={"anchor": "last_active_at", "days": 1}
+        name=VSTORE_NAME, expires_after={"anchor": "last_active_at", "days": 1}
     )
     await client.client.vector_stores.files.create_and_poll(vector_store_id=vstore.id, file_id=file.id)
     file_search = client.get_file_search_tool(vector_store_ids=[vstore.id])
-    print("LO3  retrieval   : file-search grounding over a managed vector store")
+    print(f"LO3  retrieval   : file-search grounding over a managed vector store "
+          f"(swept {swept_vs} stale store(s), {swept_f} stale file(s))")
 
     # LO4 -- assemble the agent from MEMORY + TOOLS + KNOWLEDGE (+ the guardrail).
     agent = Agent(
@@ -145,10 +187,12 @@ async def main() -> None:
     print("One agent, four decisions: model (LO1), Agents service (LO2), grounded")
     print("retrieval (LO3), and memory + tool + knowledge integration (LO4).")
 
-    # Tidy up the managed vector store and file.
+    # Tidy up so the demo leaves nothing behind. Sweep by name (not just this run's
+    # ids) so a leftover from any earlier run is cleared too, then close the client.
+    cleaned_vs, cleaned_f = await sweep_kb_resources(client)
+    print(f"Cleanup          : deleted {cleaned_vs} vector store(s), {cleaned_f} file(s)")
     with contextlib.suppress(Exception):
-        await client.client.vector_stores.delete(vector_store_id=vstore.id)
-        await client.client.files.delete(file_id=file.id)
+        await client.client.close()
 
 
 if __name__ == "__main__":
