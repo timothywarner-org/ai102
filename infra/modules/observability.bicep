@@ -49,8 +49,11 @@ resource appInsightsConnection 'Microsoft.CognitiveServices/accounts/projects/co
   name: 'appinsights'
   properties: {
     category: 'AppInsights'
-    target: appInsights.properties.ConnectionString
-    authType: 'AAD'
+    target: appInsights.id
+    authType: 'ApiKey'
+    credentials: {
+      key: appInsights.properties.ConnectionString
+    }
     isSharedToAll: true
     metadata: {
       ApiType: 'Azure'

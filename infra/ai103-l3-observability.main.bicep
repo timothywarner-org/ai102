@@ -33,6 +33,9 @@ param baseName string = 'ai103-l03'
 @description('Optional. Object ID of the demo user; gets keyless read roles on Search + Log Analytics.')
 param userObjectId string = ''
 
+@description('Region for Azure AI Search (eastus2 free tier is capacity-constrained; westus3 has room).')
+param searchLocation string = 'westus3'
+
 module observability 'modules/observability.bicep' = {
   name: 'l3-observability'
   params: {
@@ -47,7 +50,7 @@ module observability 'modules/observability.bicep' = {
 module search 'modules/search.bicep' = {
   name: 'l3-search'
   params: {
-    location: location
+    location: searchLocation
     baseName: baseName
     accountName: accountName
     projectName: projectName
