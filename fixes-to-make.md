@@ -22,9 +22,10 @@ This file documents all outstanding improvements, fixes, and enhancements for th
 
 The repo is now aligned to the **frozen 18-module objective domain**. Demo status per module:
 
-- **Real, working demo** (2 modules):
+- **Real, working demo** (3 modules):
   - [x] **01 - Choose the appropriate Foundry services for generative AI and agents**: `m01_agent_demo.py` (all-four-LO grounded agent) + `model_bakeoff.py` (LO1 model bake-off). This is the template all other modules should follow.
   - [x] **02 - Set up AI solutions in Foundry**: `m02_setup_demo.py` (one real model deployment exercising all four LOs: keyless infra, deployment SKU, version pin + content filter, idempotent CI/CD upsert). Follows the Module 01 pattern.
+  - [x] **03 - Manage, monitor, and secure AI systems** (manage/monitor emphasis): `m03_ops_demo.py` (read-only 3-signal ops demo) + `m03_ops_tour.ipynb` (student notebook). Recorded via `Warner.AI-103.Lesson-03-demo-runbook.md` (SAY/DO/PAUSE) in the course folder. Follows the Module 01/02 pattern.
 
 - **Node skeleton only** (carried over, needs a real demo) (5 modules):
   - [ ] **07 - Optimize and operationalize generative AI systems**: `node-demo/generate.js` (Azure OpenAI call). Scaffold -> build LO1 prompt/parameter tuning demo.
@@ -33,8 +34,7 @@ The repo is now aligned to the **frozen 18-module objective domain**. Demo statu
   - [ ] **15 - Apply language model text analysis**: `node-demo/translate.js` (Azure Translator). Scaffold -> maps to LO3 (text translation).
   - [ ] **16 - Implement speech solutions**: `speech-to-text-demo.js` (Speech SDK). Scaffold -> maps to LO1 (speech to text).
 
-- **No demo yet** (README scaffold only) (11 modules):
-  - [ ] **03 - Manage, monitor, and secure AI systems** (manage/monitor emphasis)
+- **No demo yet** (README scaffold only) (10 modules):
   - [ ] **04 - Manage, monitor, and secure AI systems** (secure emphasis)
   - [ ] **05 - Implement responsible AI across generative AI and agentic systems**
   - [ ] **06 - Build generative applications by using Foundry**

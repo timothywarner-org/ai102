@@ -45,5 +45,9 @@ uv run python m03_ops_demo.py --only quota   # run a single signal
 The `# %%` cell markers let you run one signal at a time in the VS Code Interactive Window while
 you narrate. The recording script is `Warner.AI-103.Lesson-03-demo-runbook.md` (in the course folder).
 
+**Student notebook:** `uvx juv run m03_ops_tour.ipynb` -- the same three signals as a runnable,
+idempotent, keyless learner notebook (teaching-point markdown + live code). It seeds the shared
+`ai103-health-demo` search index that `m03_ops_demo.py` also reads.
+
 ---
 Part of the [AI-103 course repository](https://github.com/timothywarner-org/ai103) by Tim Warner.

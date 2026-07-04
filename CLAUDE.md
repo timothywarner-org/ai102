@@ -8,6 +8,15 @@ The public **learner companion repo** for Tim Warner's Microsoft Press video cou
 
 > "AI-102" in Tim's prompts almost always means **AI-103**. He habitually mis-types it. Read it as AI-103 and proceed silently unless he clearly means the retiring predecessor exam.
 
+## Current state (2026-07)
+
+- **Recorded/shipped:** Lessons 01 and 02. Lesson 03 deck, demo, and runbook are done.
+- **Demo pattern per recorded lesson:** (a) a read-only instructor demo script (`mNN_*.py`) run live from the Edge portal + VS Code, and (b) a separate student-facing runnable notebook (`mNN_*_tour.ipynb`, keyless + idempotent). The recording is driven by an **old-school Markdown SAY/DO/PAUSE runbook** in the course folder (e.g. `Warner.AI-103.Lesson-03-demo-runbook.md`) -- **not** a Jupyter runbook. (`Lesson-02-runbook.ipynb` reflects the abandoned notebook-runbook approach.)
+- **Demo surface rule -- do NOT shoehorn the SDK.** Match the demo surface to how the task is really done: **portal + IaC (Bicep / `az` CLI) for setup and security lessons** (deployments, identity, networking, RBAC); the **Python SDK only when code is the natural, valuable surface** -- building an agent (L1), or reading signals you'd genuinely automate (L3 monitoring). Never write an SDK script just to "show code" for a portal/IaC task -- L2's create-then-delete deployment script was exactly that mistake. And when Bicep or `az` is on screen, **explain it** (walk the resource and its properties), don't just flash it.
+- **Deployed Azure MVP env:** Foundry account `aif-ai103-mvp-quc6kxy2j2v2q` (eastus2), model deployment **gpt-5-mini (2025-08-07)** -- chosen because gpt-5-nano / gpt-5.1 have **0 granted quota** on this subscription. Projects `proj-lesson-01/02/03`. L3 add-on: App Insights + free-tier Azure AI Search (westus3). IaC: `infra/ai103-core.mvp.bicep`, `infra/ai103-l3-observability.main.bicep`, `infra/modules/{observability,search}.bicep`. The full `infra/ai103-core.bicep` (4 models, 18 projects) is ready for when quota lands.
+- **Auth in new demos:** keyless via `AzureCliCredential` (the `az login` identity), deterministic vs `DefaultAzureCredential`.
+- **Tooling:** the Azure MCP server is wired into Claude Desktop config.
+
 ## Two-location workspace (READ THIS FIRST)
 
 You operate across **two folders**, opened together via `C:\Users\timot\Desktop\ai103.code-workspace`:
@@ -24,13 +33,13 @@ You operate across **two folders**, opened together via `C:\Users\timot\Desktop\
 - `examplar-speaker-notes/` -- shipped CKA decks used as the voice/format exemplar.
 - `lessons-backup-*` -- pristine deck backups; never edit these.
 
-**The repo and the course folder disagree on lesson count, and the course folder wins.** The README in this repo still lists the **old 20-lesson AI-102-era structure**; the actual AI-103 course is **18 lessons** mapped to five objective domains (see `AI-103-OD-baseline.md`). When anything depends on lesson numbering or scope, trust the course folder's objective domain, not the repo README. Flag the drift rather than propagating the stale 20-lesson list.
+**The course folder's objective domain is the source of truth for lesson count and scope.** The course is **18 lessons** mapped to five objective domains (see `AI-103-OD-baseline.md`); the repo `README.md` and `lessons/README.md` now agree on 18. If any artifact ever reverts to the old 20-lesson AI-102-era list, treat the objective domain as canonical and flag the drift.
 
 **Learning objectives and section headings are CANONICAL and FROZEN.** They map verbatim to the live Microsoft skills-measured list. Never reword them.
 
 ## Repo structure
 
-- `lessons/NN-topic/` -- per-lesson demo code and a learner README. Lesson 01 (`01-choose-foundry-services/`) is the current flagship: `m01_agent_demo.py` (one grounded agent exercising all four LOs via the Microsoft Agent Framework on Foundry) plus `model_bakeoff.py` (the LO1 model-choice spotlight). Most other lesson folders are still scaffolds. `fixes-to-make.md` tracks which lessons still need demos.
+- `lessons/NN-topic/` -- per-lesson demo code and a learner README. **Lessons 01-03 have real, runnable demos:** 01 is the flagship (`m01_agent_demo.py` + `model_bakeoff.py`), 02 is `m02_setup_demo.py`, 03 is `m03_ops_demo.py` plus the `m03_ops_tour.ipynb` student notebook. Most later lesson folders are still scaffolds. `fixes-to-make.md` tracks which lessons still need demos.
 - `lesson-demo-apps/` -- larger standalone demo applications, each with its own toolchain and README:
   - `woodgrove-bank/` -- the most complete: Node demos for document intelligence, image analysis, AI Search + Document Intelligence, and a groundedness API.
   - `tim-chat-front-end/` -- full app with `frontend/`, `backend/`, and `infra/` (azd-deployable via `azure.yaml`).

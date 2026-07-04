@@ -28,5 +28,9 @@ npm install
 node index.js
 ```
 
+## Parked demo ideas
+
+- **Agent endpoint URIs (parked from Lesson 3):** briefly create an agent and showcase its endpoint URIs -- the stable project/agent endpoint, plus latest-vs-pinned version routing. It came up in the L3 demo but derailed that lesson's monitoring throughline, so it lives here with the agent lessons (L10/L11) where it's on-topic.
+
 ---
 Part of the [AI-103 course repository](https://github.com/timothywarner-org/ai103) by Tim Warner.
