@@ -10,6 +10,7 @@ Read-only demo -- nothing gets changed. Blocks: **[SAY]** what I say - **[DO]** 
 - `az login` done; `.env` filled in; `uv sync` already run.
 - **Search index seeded once**: run `seed_index.py` so `ai103-l03-demo` exists with its gold docs. Do this a few minutes ahead so the index stats have refreshed (document count reads 6, not 0, on camera).
 - **Warm the cost read** once before recording (run `--only cost`) so you're past any Cost Management 429 throttle when the camera rolls.
+- **(Only if recording the LO2 deepening)** run `m03_generate_signal.py --calls 8` a few minutes ahead so traces have already landed in `log-ai103-l03` when you query on camera (ingestion lags 2 to 5 minutes).
 
 ---
 
@@ -67,6 +68,21 @@ Read-only demo -- nothing gets changed. Blocks: **[SAY]** what I say - **[DO]** 
 
 [PAUSE] Hold on the CONNECTED line.
 [IF IT BREAKS] If it says NOT connected, narrate it honestly -- that IS the fix, connect Application Insights under Monitoring -- and move on.
+
+### Optional deepening: prove the pipe carries data (~2 min)
+
+[SAY] CONNECTED means the pipe is wired. But a wired pipe with nothing flowing is just plumbing, so let's put real traffic through it and then go catch it. This little script makes a handful of real gpt-5-mini calls, tags each one with OpenTelemetry, and ships the traces into that same Application Insights. Then it hands me the exact query to find them.
+
+[DO] **VS Code** > integrated terminal > `uv run python m03_generate_signal.py --calls 4 --content`.
+[VERIFY] The terminal prints four calls with real latency and token counts, then an `OperationId` and the KQL.
+
+[SAY] Traces take two to five minutes to land, so this is the honest part of monitoring: you don't watch data arrive in real time. Once it's there, I run the query against the Log Analytics workspace and there's my run: a parent span and one child per model call, each with its latency and its token cost. That's the same data the Foundry dashboard draws on, read straight from the source.
+
+[DO] **Edge > ai.azure.com** > project > **Tracing** (or the workspace **Logs** blade) > paste the `OperationId` query the script printed.
+[VERIFY] The `chat gpt-5-mini` spans appear with `DurationMs` and, expanded, the `gen_ai.usage` token counts.
+
+[PAUSE] Hold on the dashboard rollup (call count, average latency, total tokens).
+[IF IT BREAKS] If the query returns nothing, it's the two-to-five-minute ingestion lag, not a failure -- say so and re-run the query. (Pre-generate a batch before recording so rows are already waiting.)
 
 ---
 

@@ -32,6 +32,10 @@ Each signal skips gracefully if its config is missing, so you can run one at a t
 - **LO2:** **Foundry User** on the project.
 - **LO3:** **Search Index Data Reader** (query) and **Reader** (stats/indexer) on the Search service.
 
+The optional signal **generator** below needs two more (it calls a model and reads telemetry, so
+it is not pure-read): **Cognitive Services OpenAI User** on the Foundry account (to call the model)
+and **Log Analytics Reader** on `log-ai103-l03` (to run the KQL that catches the trace).
+
 ## Setup and run
 
 ```bash
@@ -43,10 +47,58 @@ uv run python seed_index.py              # ONE-TIME: create the ai103-l03-demo i
 uv run python m03_ops_demo.py            # every signal (quota, cost, observability, search)
 uv run python m03_ops_demo.py --dry-run  # list what it would read; call nothing
 uv run python m03_ops_demo.py --only cost   # one signal: quota | cost | monitor | search
+uv run python m03_generate_signal.py     # LO2 deep-dive: emit REAL traces, then print the KQL to catch them
 ```
 
 The `# %%` cell markers let you run one signal at a time in the VS Code Interactive Window while
 you narrate. The recording runbook is `Warner.AI-103.Lesson-03-demo-runbook.md` (in this folder).
+
+## Generate and catch a real signal (LO2 deep-dive)
+
+`m03_ops_demo.py` proves the Observability pipe is **wired** (it prints `Application Insights:
+CONNECTED`). `m03_generate_signal.py` proves the pipe **carries data**: it makes real `gpt-5-mini`
+calls through the Foundry project, auto-instruments them with OpenTelemetry **GenAI semantic
+conventions**, exports the spans to the project's Application Insights, and prints the exact KQL to
+catch them. Unlike the read-only demo, this script **produces** telemetry, so it lives in its own
+file. `uv sync` pulls the two extra packages it needs (`azure-monitor-opentelemetry`,
+`opentelemetry-instrumentation-openai-v2`).
+
+```bash
+uv run python m03_generate_signal.py --calls 4 --content   # 4 real calls; capture prompt/response text
+```
+
+Traces land in the **`log-ai103-l03`** Log Analytics workspace within **2 to 5 minutes**. The script
+prints the run's `OperationId`; catch it three ways:
+
+```kql
+// 1. One run's spans by OperationId (parent + one child per model call)
+AppDependencies
+| where OperationId == '<printed-operation-id>'
+| project TimeGenerated, Name, DurationMs, Target
+| order by TimeGenerated asc
+
+// 2. Per-call token cost, pulled from the GenAI span attributes
+AppDependencies
+| where Name startswith 'chat gpt-5-mini'
+| extend P = parse_json(Properties)
+| project TimeGenerated, DurationMs,
+          RespModel = tostring(P['gen_ai.response.model']),
+          InTokens  = toint(P['gen_ai.usage.input_tokens']),
+          OutTokens = toint(P['gen_ai.usage.output_tokens'])
+
+// 3. The dashboard rollup: call count, latency, total tokens by model
+AppDependencies
+| where Name startswith 'chat gpt-5-mini'
+| extend P = parse_json(Properties)
+| summarize calls=count(), avg_latency_ms=round(avg(DurationMs),0),
+            max_latency_ms=round(max(DurationMs),0),
+            total_in_tokens=sum(toint(P['gen_ai.usage.input_tokens'])),
+            total_out_tokens=sum(toint(P['gen_ai.usage.output_tokens']))
+    by RespModel = tostring(P['gen_ai.response.model'])
+```
+
+Run the KQL from the portal (Foundry **Tracing**, or the workspace **Logs** blade) or the CLI:
+`az monitor log-analytics query -w <workspace-guid> --analytics-query "<kql>"`.
 
 **Student notebook:** `uvx juv run m03_ops_tour.ipynb` -- the same signals as a runnable,
 idempotent, keyless learner notebook (teaching-point markdown + live code). It reads (and, being
