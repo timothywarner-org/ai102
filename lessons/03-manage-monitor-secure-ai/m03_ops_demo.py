@@ -165,8 +165,8 @@ def signal_observability(dry: bool) -> None:
     project = AIProjectClient(endpoint=endpoint, credential=CRED)
     try:
         conn = project.telemetry.get_application_insights_connection_string()
-        head = conn.split(";")[0]                 # show only InstrumentationKey=..., never the whole string
-        print(f"  Application Insights: CONNECTED ({head})")
+        key_name = conn.split(";")[0].split("=")[0]   # the LABEL ('InstrumentationKey'), never its value
+        print(f"  Application Insights: CONNECTED ({key_name} present, value hidden)")
         print("  This pipe carries latency, token, content-filter, and groundedness signals,")
         print("  plus continuous-evaluation scores, into the Foundry monitoring dashboard.")
     except ResourceNotFoundError:

@@ -64,7 +64,7 @@ Read-only demo -- nothing gets changed. Blocks: **[SAY]** what I say - **[DO]** 
 [SAY] And here's that wiring proved from code: I fetch the project's Application Insights connection, the pipe that carries all of it.
 
 [DO] **VS Code** > `m03_ops_demo.py` > **line 157** (`signal_observability`) > run that cell.
-[VERIFY] The terminal prints "Application Insights: CONNECTED" with an instrumentation key.
+[VERIFY] The terminal prints "Application Insights: CONNECTED" (the key is confirmed present, value hidden -- we never print secrets on camera).
 
 [PAUSE] Hold on the CONNECTED line.
 [IF IT BREAKS] If it says NOT connected, narrate it honestly -- that IS the fix, connect Application Insights under Monitoring -- and move on.
