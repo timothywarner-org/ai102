@@ -80,9 +80,12 @@ const rl = readline.createInterface({
 // Load environment variables
 dotenv.config();
 
-// Azure AI Language service configuration
-const endpoint = process.env.LANGUAGE_ENDPOINT || "https://twai102language1.cognitiveservices.azure.com/";
-const apiKey = process.env.LANGUAGE_KEY || "D2SbLhonlCi6qjWdjgEaEOcGVZu2sTF4w0bTjxBfZG4qWliejaxJJQQJ99BEACYeBjFXJ3w3AAAaACOGvcMr";
+// Azure AI Language service configuration -- values come from the environment, never hardcoded.
+const endpoint = process.env.LANGUAGE_ENDPOINT;
+const apiKey = process.env.LANGUAGE_KEY;
+if (!endpoint || !apiKey) {
+  throw new Error("Set LANGUAGE_ENDPOINT and LANGUAGE_KEY (see .env.example). Never commit Cognitive Services keys.");
+}
 
 // Create client
 const client = new TextAnalysisClient(endpoint, new AzureKeyCredential(apiKey));

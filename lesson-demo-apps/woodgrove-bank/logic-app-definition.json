@@ -8,7 +8,7 @@
                   "uri": "https://twai102contentsafety1.cognitiveservices.azure.com/contentsafety/text:analyze?api-version=2024-09-01",
                   "method": "POST",
                   "headers": {
-                      "Ocp-Apim-Subscription-Key": "7GCRHrt7JORY2ktu7rQx4IeWVAM2Y5QjchNPxjGB1ULXgwoitighJQQJ99BDACYeBjFXJ3w3AAAHACOGvoMZ",
+                      "Ocp-Apim-Subscription-Key": "<your-content-safety-key>",
                       "Content-Type": "application/json"
                   },
                   "body": {
