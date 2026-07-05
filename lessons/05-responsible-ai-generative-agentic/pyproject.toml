@@ -1,0 +1,14 @@
+[project]
+name = "ai103-m05-demos"
+version = "1.0.0"
+description = "AI-103 Module 5 demo: responsible AI instrumentation (LO2) with the Azure AI Evaluation SDK."
+readme = "README.md"
+requires-python = ">=3.10,<3.14"
+dependencies = [
+    "azure-identity>=1.19.0",       # keyless auth (AzureCliCredential -> Entra ID)
+    "azure-ai-evaluation>=1.0.0",   # GroundednessEvaluator, RelevanceEvaluator, ContentSafetyEvaluator
+    "python-dotenv>=1.0.0",
+]
+
+[tool.pylint.format]
+max-line-length = 120
