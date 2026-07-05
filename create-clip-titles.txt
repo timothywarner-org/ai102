@@ -1,0 +1,26 @@
+Help me create clip-titles.txt documents for the 18 lessons of my MS Press AI-103 course. My lessons consist of two phases:
+
+1. PPT lecture (with the exact LO names the title of each clip)
+2. demo (this is what i need help with - determining time codes for clip breaks)
+
+Ideally you give me timecode and clip titles in a document. I add the timeline markers in camtasia (latest, windows) for Pearson, and deliver the project file and clip titles document.
+
+can you possible add the timeline markers to the project file directly using https://github.com/grandmasteri/pycamtasia or another solution?
+
+I'll give you the Techsmith Audiate transcript so you know what's in the video and timecodes too.
+
+for example:
+
+lesson-01-clip-titles.txt
+
+Lesson title: <blah>
+
+1. LO1
+2. LO2
+3. LO3
+4. Demo: Terse Clip Title at perfect spot on timeline
+5. Demo: Terse Clip Title
+
+also with timecodes if you can't make the markers yourself.
+
+Now: first task: I added an exemplar Camtasia project and an Audiate export script. Work your magic and lemme konw what you think. Be opinionated, and keep in mind all you know about me from foreever.

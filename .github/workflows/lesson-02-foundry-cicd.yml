@@ -1,0 +1,218 @@
+# =============================================================================
+# AI-103 . Lesson 2 . Integrate a Foundry project with a CI/CD pipeline (LO4)
+# -----------------------------------------------------------------------------
+# This is the pipeline that Lesson 2's notebook only *describes*. The runbook
+# says: swap AzureCliCredential for DefaultAzureCredential, let azure/login
+# hand you a federated (OIDC) identity, and run the same idempotent upsert in
+# CI. This file is that sentence turned into YAML.
+#
+# The teaching arc, top to bottom:
+#   1. TRIGGERS   -- when a pipeline runs (only workflow_dispatch is live here)
+#   2. IDENTITY   -- keyless OIDC login (no stored secret to leak)
+#   3. QUALITY    -- lint + validate before you touch a live subscription
+#   4. DEPLOY     -- the idempotent upsert against Foundry, gated by an env
+#   5. TEARDOWN   -- optional cleanup so a demo run costs nothing to leave behind
+#
+# Nothing here is Foundry-magic: it is the generic control-plane pattern
+# (auth -> validate -> apply -> verify) that every Azure IaC pipeline uses.
+# =============================================================================
+
+name: Lesson 02 . Foundry CI/CD
+
+# -----------------------------------------------------------------------------
+# 1. TRIGGERS -- the "on" block decides WHEN the workflow runs.
+#
+# Per the lesson recording, ONLY manual dispatch is enabled. The other triggers
+# are commented so you can see the full menu and un-comment them live on camera.
+# Rule of thumb: cheap, read-only checks belong on push/PR; anything that spends
+# money or mutates a live subscription belongs on a deliberate trigger (manual
+# dispatch or a tag/release) so it never fires by surprise.
+# -----------------------------------------------------------------------------
+on:
+  # Manual "Run workflow" button in the Actions tab. inputs let the operator
+  # steer the run without editing YAML -- here, whether to tear down after.
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target environment to deploy into"
+        type: choice
+        default: dev
+        options:
+          - dev
+          - prod
+      teardown:
+        description: "Delete the deployment after verifying (keeps the demo free)"
+        type: boolean
+        default: true
+
+  # --- Other triggers, intentionally disabled for the demo ------------------
+  # Un-comment to run the quality gate on every push to main:
+  # push:
+  #   branches: [ main ]
+  #   paths:
+  #     - "lessons/02-set-up-ai-solutions-foundry/**"
+  #     - "infra/**"
+  #     - ".github/workflows/lesson-02-foundry-cicd.yml"
+  #
+  # Un-comment to validate every pull request before merge:
+  # pull_request:
+  #   branches: [ main ]
+  #   paths:
+  #     - "lessons/02-set-up-ai-solutions-foundry/**"
+  #     - "infra/**"
+  #
+  # Un-comment for a nightly drift check (cron is UTC; 09:00 UTC ~= 3am Central):
+  # schedule:
+  #   - cron: "0 9 * * *"
+
+# -----------------------------------------------------------------------------
+# permissions -- least privilege for the WORKFLOW TOKEN (GITHUB_TOKEN).
+#
+# This is the exam-relevant line. `id-token: write` lets the job mint the
+# short-lived OIDC token that azure/login exchanges with Entra ID -- that is
+# what makes login KEYLESS. `contents: read` is only enough to check out code.
+# We grant nothing else. Start locked down, add scopes when a step needs them.
+# -----------------------------------------------------------------------------
+permissions:
+  id-token: write   # REQUIRED for OIDC federated login (the keyless handshake)
+  contents: read    # enough to clone the repo; no write access to the repo
+
+# Cancel an in-flight run if a newer one starts on the same ref -- no stacked
+# deploys racing each other against the same Foundry account.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ===========================================================================
+  # JOB 1 . VALIDATE -- fast, keyless, spends no money.
+  #
+  # Fail cheap and fail early: lint the Python and syntax-check the Bicep BEFORE
+  # any job is allowed near a live subscription. This job needs no Azure login,
+  # so it inherits none of the deploy job's identity. Separation of concerns.
+  # ===========================================================================
+  validate:
+    name: Validate (lint + IaC syntax)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"   # matches the lesson's pinned .python-version
+
+      - name: Install the uv package manager
+        # uv is the course-standard Python toolchain: it resolves and installs
+        # from the lesson's own manifest, reproducibly, in seconds.
+        uses: astral-sh/setup-uv@v5
+
+      - name: Lint the Lesson 2 demo with Ruff
+        working-directory: lessons/02-set-up-ai-solutions-foundry
+        # `uvx` runs a tool in a throwaway environment -- no need to add Ruff to
+        # the lesson's deps just to lint in CI. Style problems fail the build.
+        run: uvx ruff check .
+
+      - name: Validate the Bicep infrastructure compiles
+        # The runbook's whole point: the deployment spec maps 1:1 to Bicep, so
+        # "AI infrastructure as code" is literal. `bicep build` is a pure syntax
+        # + type check -- it touches no subscription and provisions nothing.
+        run: az bicep build --file infra/ai103-core.bicep --stdout > /dev/null
+
+  # ===========================================================================
+  # JOB 2 . DEPLOY -- keyless login, then the idempotent upsert.
+  #
+  # `needs: validate` makes this a GATE: deploy only runs if validate passed.
+  # `environment:` ties the run to a GitHub Environment, where you can require a
+  # manual approver and scope secrets -- the standard production guardrail.
+  # ===========================================================================
+  deploy:
+    name: Deploy to Foundry (${{ inputs.environment }})
+    needs: validate
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      # ---- KEYLESS AUTH -----------------------------------------------------
+      # azure/login exchanges the GitHub OIDC token for an Entra access token.
+      # The three values are IDs, not secrets -- there is no client secret or
+      # API key anywhere. Store them as repo/environment secrets, and configure
+      # a federated credential on the app registration whose subject matches
+      # this repo (e.g. repo:timothywarner-org/ai103:ref:refs/heads/main).
+      # This is the CI/CD equivalent of `az login` from the notebook.
+      - name: Log in to Azure (keyless OIDC federated identity)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      # ---- THE UPSERT -------------------------------------------------------
+      # This is the exact demo from the notebook, run headless. --keep leaves
+      # the deployment standing so a later step can prove it is live; teardown
+      # is a separate, opt-in step below. Re-running is safe: begin_create_or_
+      # update is an idempotent upsert -- Azure converges to the same state.
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install the uv package manager
+        uses: astral-sh/setup-uv@v5
+
+      - name: Deploy the model deployment (idempotent upsert)
+        working-directory: lessons/02-set-up-ai-solutions-foundry
+        # DefaultAzureCredential in the demo code picks up the token that
+        # azure/login just cached -- no code change between local and CI.
+        env:
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+          FOUNDRY_ACCOUNT_NAME: ${{ vars.FOUNDRY_ACCOUNT_NAME }}
+          FOUNDRY_PROJECT_ENDPOINT: ${{ vars.FOUNDRY_PROJECT_ENDPOINT }}
+        run: uv run python m02_setup_demo.py --keep
+
+  # ===========================================================================
+  # JOB 3 . TEARDOWN -- optional cleanup so a demo leaves nothing running.
+  #
+  # `if:` makes this conditional on the dispatch input. `needs: deploy` chains
+  # it after the deploy. In real production you would NOT tear down; here it
+  # keeps the training subscription tidy and free between recordings.
+  # ===========================================================================
+  teardown:
+    name: Tear down the demo deployment
+    needs: deploy
+    if: ${{ inputs.teardown }}
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Log in to Azure (keyless OIDC federated identity)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install the uv package manager
+        uses: astral-sh/setup-uv@v5
+
+      - name: Delete the deployment (stop the meter)
+        working-directory: lessons/02-set-up-ai-solutions-foundry
+        env:
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+          FOUNDRY_ACCOUNT_NAME: ${{ vars.FOUNDRY_ACCOUNT_NAME }}
+          FOUNDRY_PROJECT_ENDPOINT: ${{ vars.FOUNDRY_PROJECT_ENDPOINT }}
+        # The demo without --keep runs create -> verify -> delete; the delete is
+        # itself idempotent, so re-running never errors on an already-gone resource.
+        run: uv run python m02_setup_demo.py

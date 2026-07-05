@@ -1,0 +1,25 @@
+[project]
+name = "ai103-m02-demos"
+version = "1.0.0"
+description = "AI-103 Module 2 demo: set up AI solutions in Foundry (one real deployment, four setup decisions)."
+readme = "README.md"
+# azure-ai-projects 2.x wheels target Python 3.10 - 3.13. Cap below 3.14 so uv/pip
+# always resolve a wheel instead of trying (and failing) to build from source.
+requires-python = ">=3.10,<3.14"
+
+dependencies = [
+    # Keyless auth for BOTH Azure planes.
+    "azure-identity>=1.19.0",
+    # CONTROL plane -- create/configure/delete the model deployment (SKU, version pin, RAI policy).
+    "azure-mgmt-cognitiveservices>=13.5.0",
+    # DATA plane -- read deployments and call the model with an OpenAI-compatible client.
+    "azure-ai-projects>=2.0.0",
+    "openai>=1.75.0",
+    # Convenience: load .env locally (real env vars / pipeline secrets-less auth still work).
+    "python-dotenv>=1.0.0",
+]
+
+[tool.pylint.format]
+# Recited course code: descriptive names + inline "why" comments run a little long.
+# 120 matches the house style without forcing wraps that hurt on-screen readability.
+max-line-length = 120

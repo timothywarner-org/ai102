@@ -177,3 +177,10 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# Claude Code local working directory (worktrees, session state)
+.claude/
+
+# uv pins the per-lesson Python version; this MUST be committed so clones
+# get the right interpreter (Agent Framework wheels need 3.10-3.13, not 3.14)
+!.python-version

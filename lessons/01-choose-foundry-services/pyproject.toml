@@ -1,0 +1,40 @@
+[project]
+name = "ai103-m01-demos"
+version = "1.0.0"
+description = "AI-103 Module 1 demos: choose Foundry services, models, and integration approach (grounded agent + model bake-off)."
+readme = "README.md"
+# Microsoft Agent Framework GA wheels publish for Python 3.10 - 3.13 only.
+# Capping below 3.14 is the line that prevents 'pip/uv could not find a wheel' on a 3.14 box.
+requires-python = ">=3.10,<3.14"
+
+dependencies = [
+    # Core Microsoft Foundry SDK + keyless auth (both demos)
+    "azure-ai-projects>=2.0.0",
+    "azure-identity>=1.19.0",
+    "openai>=1.75.0",
+    "python-dotenv>=1.0.0",
+
+    # m01_agent_demo.py -- Microsoft Agent Framework on Foundry (the all-four-LOs demo)
+    "agent-framework-foundry>=1.0.0",
+    "aiohttp>=3.10.0",
+    "pydantic>=2.0.0",
+]
+
+[dependency-groups]
+dev = [
+    "ipykernel>=7.3.0",
+]
+
+# Pylint tuning for this teaching demo. WHY each knob (all no-op at runtime):
+[tool.pylint.typecheck]
+# agent_framework loads its submodules lazily via __getattr__, which pylint's static
+# import engine (astroid) can't follow -- so it false-flags E0401 even though the modules
+# import fine at runtime (Pylance and `python -c` both resolve them). Exempt ONLY these
+# modules; a genuine import typo anywhere else still fails the lint.
+ignored-modules = ["agent_framework", "agent_framework.foundry"]
+
+[tool.pylint.format]
+# This is recited course code: descriptive names plus inline "why" comments push a few
+# lines past pylint's 100-char default. 120 matches the house style without forcing awkward
+# wraps that would hurt on-screen readability.
+max-line-length = 120

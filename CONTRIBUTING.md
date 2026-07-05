@@ -1,4 +1,4 @@
-# Contributing to AI-102: Designing and Implementing a Microsoft Azure AI Solution
+# Contributing to AI-103: Developing AI Apps and Agents on Azure
 
 Thank you for your interest in contributing! This project thrives on collaboration, clarity, and delight. Whether you're fixing a typo, adding a new demo, or suggesting a best practice, your input is valued.
 

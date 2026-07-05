@@ -1,0 +1,19 @@
+[project]
+name = "ai103-m03-demos"
+version = "1.0.0"
+description = "AI-103 Module 3 demo: manage and monitor AI systems (one project, three read-only ops signals)."
+readme = "README.md"
+requires-python = ">=3.10,<3.14"
+dependencies = [
+    "azure-identity>=1.19.0",
+    "azure-mgmt-cognitiveservices>=13.5.0", # LO1 control plane: quota usages
+    "azure-mgmt-costmanagement>=4.0.0", # LO1 cost guardrails: month-to-date cost by workload
+    "azure-ai-projects>=2.0.0", # LO2 data plane: Application Insights telemetry
+    "azure-search-documents>=11.5.0", # LO3: index stats, indexer status, query score
+    "python-dotenv>=1.0.0",
+    "azure-monitor-opentelemetry>=1.8.9",
+    "opentelemetry-instrumentation-openai-v2>=2.4b0",
+]
+
+[tool.pylint.format]
+max-line-length = 120

@@ -2,7 +2,7 @@
 
 ## 🚨 Educational Use Only
 
-This repository is part of the AI-102: Designing and Implementing an Azure AI Solution course. It contains intentionally vulnerable code, insecure patterns, and hardcoded secrets for the sole purpose of hands-on security training, CodeQL demonstrations, and educational exercises.
+This repository is part of the AI-103: Designing and Implementing an Azure AI Solution course. It contains intentionally vulnerable code, insecure patterns, and hardcoded secrets for the sole purpose of hands-on security training, CodeQL demonstrations, and educational exercises.
 
 **Do not deploy any code from this repository to production environments.**
 
