@@ -22,10 +22,17 @@ This file documents all outstanding improvements, fixes, and enhancements for th
 
 The repo is now aligned to the **frozen 18-module objective domain**. Demo status per module:
 
-- **Real, working demo** (3 modules):
+- **Real, working demo** (verified green):
   - [x] **01 - Choose the appropriate Foundry services for generative AI and agents**: `m01_agent_demo.py` (all-four-LO grounded agent) + `model_bakeoff.py` (LO1 model bake-off). This is the template all other modules should follow.
   - [x] **02 - Set up AI solutions in Foundry**: `m02_setup_demo.py` (one real model deployment exercising all four LOs: keyless infra, deployment SKU, version pin + content filter, idempotent CI/CD upsert). Follows the Module 01 pattern.
-  - [x] **03 - Manage, monitor, and secure AI systems** (manage/monitor emphasis): `m03_ops_demo.py` (read-only 3-signal ops demo) + `m03_ops_tour.ipynb` (student notebook). Recorded via `Warner.AI-103.Lesson-03-demo-runbook.md` (SAY/DO/PAUSE) in the course folder. Follows the Module 01/02 pattern.
+  - [x] **03 - Manage, monitor, and secure AI systems** (manage/monitor emphasis): `m03_ops_demo.py` (read-only ops signals: quota + cost + observability + index recall@k) + `m03_generate_signal.py` (telemetry generator) + `m03_ops_tour.ipynb` (student notebook) + `seed_index.py` (one-time index setup). Aligned to the deck's three demo clips; verified green twice. Runbook `Warner.AI-103.Lesson-03-demo-runbook.md` lives **in the lesson folder** (all lesson assets moved into the repo, 2026-07-04).
+  - [x] **04 - Manage, monitor, and secure AI systems** (secure emphasis): **portal + IaC demo, no script by design** (zero-trust identity, private networking, RBAC). Driven by `Warner.AI-103.Lesson-04-demo-runbook.md`, reads the Bicep in `infra/`. Aligned to its three demo clips; the referenced Bicep properties and `az` command are verified present.
+
+- **Real demo, BLOCKED on infra** (1 module):
+  - [~] **05 - Implement responsible AI across generative AI and agentic systems**: `m05_evals_demo.py` (Azure AI Evaluation SDK: groundedness/relevance, keyless) + full 4-segment runbook covering all four demo clips (content filter, evaluators, audit trace, agent governance). **Code is correct but cannot run green yet**, blocked on Azure infra:
+    - The eval SDK's built-in evaluators send `max_tokens`, which **gpt-5-mini rejects** (wants `max_completion_tokens`). Needs a **non-gpt-5 judge** (gpt-4.1-mini / gpt-4o-mini) deployed GlobalStandard -- but those have **0 GlobalStandard quota** in eastus2 (only Batch), so a **quota request** is required.
+    - **`proj-lesson-05` does not exist** yet (only proj-lesson-01/02/03). The project-scoped safety evaluator needs it.
+    - Fixed in code meanwhile: the `type: azure_openai` config discriminator, keyless via the evaluator `credential=` kwarg (the SDK validator crashes on a `credential` dict key), and `load_dotenv(override=True)` so the lesson `.env` wins over ambient `AZURE_OPENAI_*` vars.
 
 - **Node skeleton only** (carried over, needs a real demo) (5 modules):
   - [ ] **07 - Optimize and operationalize generative AI systems**: `node-demo/generate.js` (Azure OpenAI call). Scaffold -> build LO1 prompt/parameter tuning demo.
@@ -34,9 +41,7 @@ The repo is now aligned to the **frozen 18-module objective domain**. Demo statu
   - [ ] **15 - Apply language model text analysis**: `node-demo/translate.js` (Azure Translator). Scaffold -> maps to LO3 (text translation).
   - [ ] **16 - Implement speech solutions**: `speech-to-text-demo.js` (Speech SDK). Scaffold -> maps to LO1 (speech to text).
 
-- **No demo yet** (README scaffold only) (10 modules):
-  - [ ] **04 - Manage, monitor, and secure AI systems** (secure emphasis)
-  - [ ] **05 - Implement responsible AI across generative AI and agentic systems**
+- **No demo yet** (README scaffold only) (8 modules):
   - [ ] **06 - Build generative applications by using Foundry**
   - [ ] **08 - Build generative applications by using Foundry**
   - [ ] **09 - Build generative applications by using Foundry**

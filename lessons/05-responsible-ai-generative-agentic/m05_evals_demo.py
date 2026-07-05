@@ -53,7 +53,10 @@ from azure.identity import AzureCliCredential
 
 try:
     from dotenv import load_dotenv
-    load_dotenv()
+    # override=True so this lesson's .env WINS over any ambient AZURE_OPENAI_* vars in your
+    # shell. Without it, a stray AZURE_OPENAI_ENDPOINT/DEPLOYMENT set elsewhere silently
+    # grades against the wrong model -- a nasty surprise on camera. The .env is the source of truth.
+    load_dotenv(override=True)
 except ImportError:
     pass  # .env is a convenience; real env vars work too.
 
@@ -90,24 +93,30 @@ def score_of(result: dict, metric: str):
 
 # %%
 # ---- the judge model configuration (keyless) -----------------------------------------
-def build_model_config() -> dict:
-    """Assemble the LLM-as-a-judge config the quality evaluators grade with.
+def build_model_config():
+    """Assemble the LLM-as-a-judge config, returning (model_config, credential).
 
-    This is a plain dict on purpose -- it's the AzureOpenAIModelConfiguration shape the
-    Evaluation SDK expects. The important line is `credential`: pass an AzureCliCredential
-    and the evaluator authenticates to your judge deployment with Microsoft Entra ID, so
-    there is NO api_key in this file. If you truly must use a key (say, a locked-down lab),
-    set AZURE_OPENAI_KEY and we honor it -- but keyless is the default and the exam's
-    recommended posture.
+    Two SDK quirks drove this shape, both learned the hard way against the current
+    azure-ai-evaluation build:
+
+    1. The "type": "azure_openai" discriminator is REQUIRED. Omit it and the SDK's
+       validator tries the plain-OpenAI shape and rejects the azure_* keys with a
+       confusing "unknown keys" error.
+    2. The credential does NOT go in the dict. The SDK's config validator chokes on a
+       `credential` key (its type is `Any`, and the naive validator calls isinstance
+       against it, which raises). Instead we return the credential separately and pass
+       it as the evaluator's `credential=` KWARG -- that's the supported keyless path,
+       with NO api_key in this file. Set AZURE_OPENAI_KEY only for a locked-down lab.
     """
     endpoint = required(
         "AZURE_OPENAI_ENDPOINT",
         "your Foundry account endpoint, e.g. https://<account>.services.ai.azure.com",
     )
-    deployment = required("AZURE_OPENAI_DEPLOYMENT", "the JUDGE deployment name, e.g. gpt-5-mini")
+    deployment = required("AZURE_OPENAI_DEPLOYMENT", "the JUDGE deployment name, e.g. gpt-4.1-mini")
     api_version = os.environ.get("AZURE_OPENAI_API_VERSION", "2024-10-21")
 
     model_config = {
+        "type": "azure_openai",
         "azure_endpoint": endpoint,
         "azure_deployment": deployment,
         "api_version": api_version,
@@ -115,9 +124,8 @@ def build_model_config() -> dict:
     api_key = os.environ.get("AZURE_OPENAI_KEY")
     if api_key:
         model_config["api_key"] = api_key          # opt-in, discouraged
-    else:
-        model_config["credential"] = AzureCliCredential()  # keyless default (Entra ID)
-    return model_config
+        return model_config, None                  # key auth: no separate credential
+    return model_config, AzureCliCredential()      # keyless default (Entra ID) via kwarg
 
 
 # %%
@@ -136,12 +144,17 @@ FABRICATED_ANSWER = "The default content filter inspects twelve harm categories 
 
 
 # %%
-def run_quality(model_config: dict) -> None:
-    """LO2 QUALITY: score the grounded vs fabricated answer for groundedness and relevance."""
+def run_quality(model_config: dict, credential=None) -> None:
+    """LO2 QUALITY: score the grounded vs fabricated answer for groundedness and relevance.
+
+    `credential` is passed as the evaluator KWARG (keyless), never inside model_config --
+    see build_model_config for why the SDK validator rejects it in the dict.
+    """
     from azure.ai.evaluation import GroundednessEvaluator, RelevanceEvaluator
 
-    groundedness = GroundednessEvaluator(model_config=model_config)
-    relevance = RelevanceEvaluator(model_config=model_config)
+    kw = {"credential": credential} if credential is not None else {}
+    groundedness = GroundednessEvaluator(model_config=model_config, **kw)
+    relevance = RelevanceEvaluator(model_config=model_config, **kw)
 
     cases = [("GROUNDED answer", GROUNDED_ANSWER), ("FABRICATED answer", FABRICATED_ANSWER)]
     for label, answer in cases:
@@ -207,8 +220,8 @@ def main() -> None:
         print(f"  Safety eval     : {'ContentSafetyEvaluator (opt-in)' if args.safety else 'skipped (no --safety)'}")
         return
 
-    model_config = build_model_config()
-    run_quality(model_config)
+    model_config, credential = build_model_config()
+    run_quality(model_config, credential)
     if args.safety:
         run_safety()
 
