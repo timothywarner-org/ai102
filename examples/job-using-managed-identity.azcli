@@ -1,0 +1,173 @@
+#!/usr/bin/env bash
+# ============================================================================
+#  AI-103 | Keyless batch inference with a USER-ASSIGNED MANAGED IDENTITY
+# ----------------------------------------------------------------------------
+#  What this teaches, end to end:
+#    1. Create a user-assigned managed identity (a passwordless Entra ID
+#       identity that Azure fully manages -- no secret ever leaves Azure).
+#    2. Grant that identity a least-privilege role on the Foundry account
+#       so it can call model deployments (data-plane inference).
+#    3. Attach the identity to a Container App JOB and have the job log in
+#       AS the identity and call the model -- zero API keys, zero secrets.
+#
+#  Shell: bash. Run in Azure Cloud Shell or WSL2 (this is a .azcli file, not
+#         PowerShell). Requires: az CLI 2.60+, and on your login identity the
+#         Owner or User Access Administrator role on the resource group (role
+#         assignment writes need Microsoft.Authorization/roleAssignments/write).
+#
+#  Idempotent: re-running is safe. Creates use "show-or-create" guards; role
+#  assignment create is naturally idempotent (a duplicate is a no-op).
+# ============================================================================
+
+set -euo pipefail   # fail fast: exit on error, unset var, or broken pipe
+
+# ---------------------------------------------------------------------------
+# 0) Variables -- the only block you edit. Everything downstream derives IDs
+#    dynamically with --query, so there are no brittle hardcoded resource IDs.
+# ---------------------------------------------------------------------------
+SUBSCRIPTION_ID="92fd53f2-c38e-461a-9f50-e1ef3382c54c"
+RESOURCE_GROUP="rg-ai103-core"                       # where the Foundry account lives
+LOCATION="eastus2"
+FOUNDRY_ACCOUNT="aif-ai103-mvp-quc6kxy2j2v2q"        # the AIServices (Foundry) account
+MODEL_DEPLOYMENT="gpt-5-mini"                         # deployment NAME, not model family
+
+IDENTITY_NAME="id-ai103-batch-job"                   # our user-assigned managed identity
+ACA_ENVIRONMENT="cae-ai103-jobs"                     # Container Apps environment
+JOB_NAME="job-ai103-nightly-inference"               # the batch job that runs keyless
+
+# Built-in, least-privilege DATA-PLANE role for calling OpenAI/Foundry models.
+# Alternative for agent-building work: "Azure AI Developer".
+ROLE_NAME="Cognitive Services OpenAI User"
+
+az account set --subscription "$SUBSCRIPTION_ID"
+
+# ---------------------------------------------------------------------------
+# 1) Create the user-assigned managed identity
+#    WHY user-assigned (not system-assigned): its lifecycle is independent of
+#    any one compute resource, so the SAME identity + role grants can be reused
+#    across many jobs, and survive a job being deleted and recreated.
+# ---------------------------------------------------------------------------
+az identity create \
+  --name "$IDENTITY_NAME" \
+  --resource-group "$RESOURCE_GROUP" \
+  --location "$LOCATION"
+
+# Capture the three facts every downstream step needs. principalId is the
+# identity's Entra ID object ID (used to GRANT roles); clientId is what code
+# presents at RUNTIME to pick this identity; the resource id is used to ATTACH.
+IDENTITY_PRINCIPAL_ID="$(az identity show -n "$IDENTITY_NAME" -g "$RESOURCE_GROUP" --query principalId -o tsv)"
+IDENTITY_CLIENT_ID="$(az identity show -n "$IDENTITY_NAME" -g "$RESOURCE_GROUP" --query clientId -o tsv)"
+IDENTITY_RESOURCE_ID="$(az identity show -n "$IDENTITY_NAME" -g "$RESOURCE_GROUP" --query id -o tsv)"
+
+echo "Identity principalId (grant target): $IDENTITY_PRINCIPAL_ID"
+echo "Identity clientId (runtime selector): $IDENTITY_CLIENT_ID"
+
+# ---------------------------------------------------------------------------
+# 2) Grant the identity a role -- scoped to the Foundry ACCOUNT, not the whole
+#    resource group. Tightest blast radius: this identity can call models on
+#    exactly one account and nothing else.
+#
+#    NOTE: a fresh identity's principalId can take a few seconds to replicate
+#    through Entra ID. If the assignment errors with "principal not found",
+#    wait ~30s and re-run -- the script is idempotent.
+# ---------------------------------------------------------------------------
+FOUNDRY_ACCOUNT_ID="$(az cognitiveservices account show \
+  --name "$FOUNDRY_ACCOUNT" \
+  --resource-group "$RESOURCE_GROUP" \
+  --query id -o tsv)"
+
+az role assignment create \
+  --assignee-object-id "$IDENTITY_PRINCIPAL_ID" \
+  --assignee-principal-type ServicePrincipal \
+  --role "$ROLE_NAME" \
+  --scope "$FOUNDRY_ACCOUNT_ID"
+
+# ---------------------------------------------------------------------------
+# 3) The runtime host: a Container Apps environment + a JOB.
+#    A managed identity has no reachable token endpoint on your laptop -- it is
+#    only presented to compute INSIDE Azure. The job is that compute vehicle.
+# ---------------------------------------------------------------------------
+az extension add --name containerapp --upgrade --only-show-errors
+az provider register --namespace Microsoft.App --wait
+az provider register --namespace Microsoft.OperationalInsights --wait
+
+az containerapp env create \
+  --name "$ACA_ENVIRONMENT" \
+  --resource-group "$RESOURCE_GROUP" \
+  --location "$LOCATION"
+
+# Create a manual-trigger job. We ATTACH the user-assigned identity with
+# --mi-user-assigned so the running container can request tokens for it.
+# The container image is the stock az CLI image so the job's command can call
+# `az login --identity` with nothing extra to build.
+az containerapp job create \
+  --name "$JOB_NAME" \
+  --resource-group "$RESOURCE_GROUP" \
+  --environment "$ACA_ENVIRONMENT" \
+  --trigger-type Manual \
+  --replica-timeout 300 \
+  --replica-retry-limit 1 \
+  --image "mcr.microsoft.com/azure-cli:latest" \
+  --cpu 0.5 --memory 1.0Gi \
+  --mi-user-assigned "$IDENTITY_RESOURCE_ID" \
+  --env-vars \
+      "AZURE_CLIENT_ID=$IDENTITY_CLIENT_ID" \
+      "FOUNDRY_ENDPOINT=https://${FOUNDRY_ACCOUNT}.openai.azure.com" \
+      "MODEL_DEPLOYMENT=$MODEL_DEPLOYMENT" \
+  --command "/bin/sh" "-c" '
+      set -e
+      # ---- THIS is the production, keyless invocation, running as the identity ----
+      # `az login --identity --username <clientId>` logs in with NO secret. The
+      # platform hands the token to the container; the clientId picks WHICH
+      # user-assigned identity when more than one is attached.
+      az login --identity --username "$AZURE_CLIENT_ID" --output none
+      echo "Logged in as managed identity. Calling $MODEL_DEPLOYMENT ..."
+
+      # Grab a data-plane token for Cognitive Services and call the deployment.
+      TOKEN=$(az account get-access-token \
+                --resource https://cognitiveservices.azure.com \
+                --query accessToken -o tsv)
+
+      curl -sS -X POST \
+        "$FOUNDRY_ENDPOINT/openai/deployments/$MODEL_DEPLOYMENT/chat/completions?api-version=2024-10-21" \
+        -H "Authorization: Bearer $TOKEN" \
+        -H "Content-Type: application/json" \
+        -d "{\"messages\":[{\"role\":\"user\",\"content\":\"Reply with the single word: keyless\"}],\"max_completion_tokens\":16}"
+  '
+
+# ---------------------------------------------------------------------------
+# 4) Run the job now and watch it. In production this fires on a schedule
+#    (--trigger-type Schedule --cron-expression "0 2 * * *") instead.
+# ---------------------------------------------------------------------------
+az containerapp job start --name "$JOB_NAME" --resource-group "$RESOURCE_GROUP"
+
+echo "Job started. Stream execution status with:"
+echo "  az containerapp job execution list -n $JOB_NAME -g $RESOURCE_GROUP -o table"
+
+# ---------------------------------------------------------------------------
+# 5) Cleanup (uncomment to tear the demo down)
+# ---------------------------------------------------------------------------
+# az containerapp job delete   -n "$JOB_NAME"       -g "$RESOURCE_GROUP" --yes
+# az containerapp env delete   -n "$ACA_ENVIRONMENT" -g "$RESOURCE_GROUP" --yes
+# az role assignment delete    --assignee-object-id "$IDENTITY_PRINCIPAL_ID" --scope "$FOUNDRY_ACCOUNT_ID"
+# az identity delete           -n "$IDENTITY_NAME"  -g "$RESOURCE_GROUP"
+
+# ============================================================================
+#  RBAC QUESTION: "Does the script runner need Read on the managed identity?"
+# ----------------------------------------------------------------------------
+#  Two different actors, two different answers:
+#
+#  A) The RUNNING JOB (the container at runtime) needs NO RBAC on the identity.
+#     The identity is ATTACHED to the job; the platform injects the token. The
+#     code just asks for it. Reader on the identity is neither used nor needed.
+#
+#  B) The person/pipeline that ATTACHES the identity to the job (step 3, the
+#     --mi-user-assigned flag) needs MORE than Read. Attaching requires the
+#     "Managed Identity Operator" role on the identity, which grants
+#     Microsoft.ManagedIdentity/userAssignedIdentities/*/assign/action.
+#     Plain "Reader" (only .../read) CANNOT assign an identity to a resource.
+#
+#  So: Read alone never lets you USE an identity. To attach it you need
+#  Managed Identity Operator; to grant it a role (step 2) you need
+#  User Access Administrator or Owner on the scope.
+# ============================================================================

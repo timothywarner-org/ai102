@@ -1,0 +1,15 @@
+[project]
+name = "ai103-m06-demos"
+version = "1.0.0"
+description = "AI-103 Module 6 demo: build a generative app on Foundry (connect, consume, connectors, agent)."
+readme = "README.md"
+requires-python = ">=3.10,<3.14"
+dependencies = [
+    "azure-identity>=1.19.0",       # keyless auth (AzureCliCredential -> Entra ID)
+    "azure-ai-projects>=2.0.0b2",   # AIProjectClient, get_openai_client, connections, agents
+    "openai>=1.109.0",              # the client get_openai_client() returns
+    "python-dotenv>=1.0.0",
+]
+
+[tool.pylint.format]
+max-line-length = 120

@@ -1,0 +1,15 @@
+[project]
+name = "ai103-m07-demos"
+version = "1.0.0"
+description = "AI-103 Module 7 demo: prompt engineering + optimizing generation (dials, patterns, self-critique)."
+readme = "README.md"
+requires-python = ">=3.10,<3.14"
+dependencies = [
+    "azure-identity>=1.19.0",
+    "azure-ai-projects>=2.0.0b2",
+    "openai>=1.109.0",
+    "python-dotenv>=1.0.0",
+]
+
+[tool.pylint.format]
+max-line-length = 120

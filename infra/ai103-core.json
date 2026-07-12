@@ -1,0 +1,182 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.35.1.17967",
+      "templateHash": "3229134362871247284"
+    }
+  },
+  "parameters": {
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]",
+      "metadata": {
+        "description": "Azure region. eastus2 has confirmed gpt-5 family + embeddings + gpt-4o quota."
+      }
+    },
+    "accountName": {
+      "type": "string",
+      "defaultValue": "[format('aif-ai103-core-{0}', uniqueString(resourceGroup().id))]",
+      "metadata": {
+        "description": "Globally unique Foundry account name; also the *.services.ai.azure.com subdomain."
+      }
+    },
+    "userObjectId": {
+      "type": "string",
+      "metadata": {
+        "description": "Object ID of the user who gets keyless data-plane access to the account."
+      }
+    },
+    "lessonCount": {
+      "type": "int",
+      "defaultValue": 18,
+      "metadata": {
+        "description": "Number of lesson projects to create (the AI-103 course is 18 lessons)."
+      }
+    }
+  },
+  "variables": {
+    "models": [
+      {
+        "name": "gpt-5.1",
+        "model": "gpt-5.1",
+        "version": "2025-11-13",
+        "capacity": 50
+      },
+      {
+        "name": "gpt-5-nano",
+        "model": "gpt-5-nano",
+        "version": "2025-08-07",
+        "capacity": 50
+      },
+      {
+        "name": "text-embedding-3-large",
+        "model": "text-embedding-3-large",
+        "version": "1",
+        "capacity": 50
+      },
+      {
+        "name": "gpt-4o",
+        "model": "gpt-4o",
+        "version": "2024-11-20",
+        "capacity": 50
+      }
+    ],
+    "roleAzureAIDeveloper": "64702f94-c441-49e6-a78b-ef80e0188fee",
+    "roleCognitiveServicesOpenAIUser": "5e0bd9bd-7b93-4f28-af87-19fc36ad61bd",
+    "dataPlaneRoles": [
+      "[variables('roleAzureAIDeveloper')]",
+      "[variables('roleCognitiveServicesOpenAIUser')]"
+    ]
+  },
+  "resources": [
+    {
+      "type": "Microsoft.CognitiveServices/accounts",
+      "apiVersion": "2025-06-01",
+      "name": "[parameters('accountName')]",
+      "location": "[parameters('location')]",
+      "kind": "AIServices",
+      "sku": {
+        "name": "S0"
+      },
+      "identity": {
+        "type": "SystemAssigned"
+      },
+      "properties": {
+        "allowProjectManagement": true,
+        "customSubDomainName": "[parameters('accountName')]",
+        "publicNetworkAccess": "Enabled",
+        "disableLocalAuth": false
+      }
+    },
+    {
+      "copy": {
+        "name": "deployments",
+        "count": "[length(variables('models'))]",
+        "mode": "serial",
+        "batchSize": 1
+      },
+      "type": "Microsoft.CognitiveServices/accounts/deployments",
+      "apiVersion": "2025-06-01",
+      "name": "[format('{0}/{1}', parameters('accountName'), variables('models')[copyIndex()].name)]",
+      "sku": {
+        "name": "GlobalStandard",
+        "capacity": "[variables('models')[copyIndex()].capacity]"
+      },
+      "properties": {
+        "model": {
+          "format": "OpenAI",
+          "name": "[variables('models')[copyIndex()].model]",
+          "version": "[variables('models')[copyIndex()].version]"
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.CognitiveServices/accounts', parameters('accountName'))]"
+      ]
+    },
+    {
+      "copy": {
+        "name": "projects",
+        "count": "[length(range(1, parameters('lessonCount')))]",
+        "mode": "serial",
+        "batchSize": 1
+      },
+      "type": "Microsoft.CognitiveServices/accounts/projects",
+      "apiVersion": "2025-06-01",
+      "name": "[format('{0}/{1}', parameters('accountName'), format('proj-lesson-{0}', padLeft(string(range(1, parameters('lessonCount'))[copyIndex()]), 2, '0')))]",
+      "location": "[parameters('location')]",
+      "identity": {
+        "type": "SystemAssigned"
+      },
+      "properties": {
+        "displayName": "[format('AI-103 Lesson {0}', padLeft(string(range(1, parameters('lessonCount'))[copyIndex()]), 2, '0'))]",
+        "description": "[format('Isolated Foundry project for AI-103 lesson {0} demos.', padLeft(string(range(1, parameters('lessonCount'))[copyIndex()]), 2, '0'))]"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.CognitiveServices/accounts', parameters('accountName'))]",
+        "deployments"
+      ]
+    },
+    {
+      "copy": {
+        "name": "roleAssignments",
+        "count": "[length(variables('dataPlaneRoles'))]",
+        "mode": "serial",
+        "batchSize": 1
+      },
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "scope": "[format('Microsoft.CognitiveServices/accounts/{0}', parameters('accountName'))]",
+      "name": "[guid(resourceId('Microsoft.CognitiveServices/accounts', parameters('accountName')), parameters('userObjectId'), variables('dataPlaneRoles')[copyIndex()])]",
+      "properties": {
+        "principalId": "[parameters('userObjectId')]",
+        "principalType": "User",
+        "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('dataPlaneRoles')[copyIndex()])]"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.CognitiveServices/accounts', parameters('accountName'))]",
+        "projects"
+      ]
+    }
+  ],
+  "outputs": {
+    "accountName": {
+      "type": "string",
+      "value": "[parameters('accountName')]"
+    },
+    "accountResourceId": {
+      "type": "string",
+      "value": "[resourceId('Microsoft.CognitiveServices/accounts', parameters('accountName'))]"
+    },
+    "lesson01ProjectEndpoint": {
+      "type": "string",
+      "value": "[format('https://{0}.services.ai.azure.com/api/projects/proj-lesson-01', parameters('accountName'))]"
+    },
+    "projectEndpointPattern": {
+      "type": "string",
+      "value": "[format('https://{0}.services.ai.azure.com/api/projects/proj-lesson-{{NN}}', parameters('accountName'))]"
+    }
+  }
+}

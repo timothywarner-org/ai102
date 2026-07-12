@@ -1,0 +1,155 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.35.1.17967",
+      "templateHash": "12404861323353596645"
+    }
+  },
+  "parameters": {
+    "location": {
+      "type": "string",
+      "defaultValue": "eastus2",
+      "metadata": {
+        "description": "Azure region. eastus2 has gpt-5-mini GlobalStandard quota (limit 500)."
+      }
+    },
+    "accountName": {
+      "type": "string",
+      "defaultValue": "[format('aif-ai103-mvp-{0}', uniqueString(resourceGroup().id))]",
+      "metadata": {
+        "description": "Globally unique Foundry account name (also the *.services.ai.azure.com subdomain)."
+      }
+    },
+    "userObjectId": {
+      "type": "string",
+      "metadata": {
+        "description": "Object ID of the user who gets keyless data-plane access."
+      }
+    },
+    "lessonCount": {
+      "type": "int",
+      "defaultValue": 3,
+      "metadata": {
+        "description": "Number of lesson projects (MVP = 3 for L1-L3)."
+      }
+    }
+  },
+  "variables": {
+    "modelName": "gpt-5-mini",
+    "modelVersion": "2025-08-07",
+    "modelCapacity": 20,
+    "roleFoundryUser": "53ca6127-db72-4b80-b1b0-d745d6d5456d",
+    "roleCognitiveServicesOpenAIUser": "5e0bd9bd-7b93-4f28-af87-19fc36ad61bd",
+    "dataPlaneRoles": [
+      "[variables('roleFoundryUser')]",
+      "[variables('roleCognitiveServicesOpenAIUser')]"
+    ]
+  },
+  "resources": [
+    {
+      "type": "Microsoft.CognitiveServices/accounts",
+      "apiVersion": "2025-06-01",
+      "name": "[parameters('accountName')]",
+      "location": "[parameters('location')]",
+      "kind": "AIServices",
+      "sku": {
+        "name": "S0"
+      },
+      "identity": {
+        "type": "SystemAssigned"
+      },
+      "properties": {
+        "allowProjectManagement": true,
+        "customSubDomainName": "[parameters('accountName')]",
+        "publicNetworkAccess": "Enabled",
+        "disableLocalAuth": false
+      }
+    },
+    {
+      "type": "Microsoft.CognitiveServices/accounts/deployments",
+      "apiVersion": "2025-06-01",
+      "name": "[format('{0}/{1}', parameters('accountName'), variables('modelName'))]",
+      "sku": {
+        "name": "GlobalStandard",
+        "capacity": "[variables('modelCapacity')]"
+      },
+      "properties": {
+        "model": {
+          "format": "OpenAI",
+          "name": "[variables('modelName')]",
+          "version": "[variables('modelVersion')]"
+        },
+        "versionUpgradeOption": "NoAutoUpgrade",
+        "raiPolicyName": "Microsoft.DefaultV2"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.CognitiveServices/accounts', parameters('accountName'))]"
+      ]
+    },
+    {
+      "copy": {
+        "name": "projects",
+        "count": "[length(range(1, parameters('lessonCount')))]",
+        "mode": "serial",
+        "batchSize": 1
+      },
+      "type": "Microsoft.CognitiveServices/accounts/projects",
+      "apiVersion": "2025-06-01",
+      "name": "[format('{0}/{1}', parameters('accountName'), format('proj-lesson-{0}', padLeft(string(range(1, parameters('lessonCount'))[copyIndex()]), 2, '0')))]",
+      "location": "[parameters('location')]",
+      "identity": {
+        "type": "SystemAssigned"
+      },
+      "properties": {
+        "displayName": "[format('AI-103 Lesson {0}', padLeft(string(range(1, parameters('lessonCount'))[copyIndex()]), 2, '0'))]",
+        "description": "[format('Isolated Foundry project for AI-103 lesson {0} (MVP).', padLeft(string(range(1, parameters('lessonCount'))[copyIndex()]), 2, '0'))]"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.CognitiveServices/accounts', parameters('accountName'))]",
+        "[resourceId('Microsoft.CognitiveServices/accounts/deployments', parameters('accountName'), variables('modelName'))]"
+      ]
+    },
+    {
+      "copy": {
+        "name": "roleAssignments",
+        "count": "[length(variables('dataPlaneRoles'))]",
+        "mode": "serial",
+        "batchSize": 1
+      },
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "scope": "[format('Microsoft.CognitiveServices/accounts/{0}', parameters('accountName'))]",
+      "name": "[guid(resourceId('Microsoft.CognitiveServices/accounts', parameters('accountName')), parameters('userObjectId'), variables('dataPlaneRoles')[copyIndex()])]",
+      "properties": {
+        "principalId": "[parameters('userObjectId')]",
+        "principalType": "User",
+        "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('dataPlaneRoles')[copyIndex()])]"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.CognitiveServices/accounts', parameters('accountName'))]",
+        "projects"
+      ]
+    }
+  ],
+  "outputs": {
+    "accountName": {
+      "type": "string",
+      "value": "[parameters('accountName')]"
+    },
+    "modelDeploymentName": {
+      "type": "string",
+      "value": "[variables('modelName')]"
+    },
+    "lesson02Endpoint": {
+      "type": "string",
+      "value": "[format('https://{0}.services.ai.azure.com/api/projects/proj-lesson-02', parameters('accountName'))]"
+    },
+    "lesson03Endpoint": {
+      "type": "string",
+      "value": "[format('https://{0}.services.ai.azure.com/api/projects/proj-lesson-03', parameters('accountName'))]"
+    }
+  }
+}

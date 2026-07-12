@@ -13,18 +13,36 @@ Quoted verbatim from the AI-103 objective domain:
 3. Set up observability by implementing tracing, token analytics, safety signals, and latency breakdowns
 4. Orchestrate multiple models, flows, or hybrid LLM and rules engines
 
-## Demos
+## The demo: steer the model on purpose
 
-Run demos directly from this folder.
+`m07_prompt_demo.py` is a live, keyless, read-only demo that walks the three objectives the
+**deck** teaches, in order (full talk track: `Warner.AI-103.Lesson-07-demo-runbook.md`):
 
-This module contains a **Node.js skeleton** under `node-demo/` (`generate.js`), carried over during the AI-103 restructure. It is a scaffold, not a finished demo. Treat it as a starting point for an LO1 prompt-and-parameter tuning demo.
+| Beat | What the code shows | Key API |
+|---|---|---|
+| **Tune generation (dials)** | `max_output_tokens` truncates (status=incomplete); `temperature` is REJECTED by the reasoning model; tune `reasoning_effort` (low vs high, with timing) | `responses.create(..., max_output_tokens=, reasoning={"effort":})` |
+| **Prompt patterns** | role prompting, few-shot, **structured output** (a JSON schema the model must satisfy), grounding | `responses.create(..., instructions=, text={"format":{"type":"json_schema"}})` |
+| **Reflection / self-critique** | draft -> self-score (1-5 as JSON) -> critique-guided retry | a score-then-retry loop |
+
+Runs on **gpt-5-mini**, a reasoning model -- which is *why* temperature is rejected and
+`reasoning_effort` is the dial. On a standard model (gpt-4o-mini, gpt-4.1) temperature would be
+accepted; the demo adapts either way.
+
+## Setup and run
 
 ```bash
-cd node-demo
-cp .env.sample .env   # fill in your Foundry project values
-npm install
-node generate.js "Your prompt"
+cd lessons/07-optimize-operationalize-genai
+uv sync
+az login
+cp .env.example .env        # FOUNDRY_PROJECT_ENDPOINT (proj-lesson-07) + MODEL_DEPLOYMENT_NAME
+
+uv run python m07_prompt_demo.py            # all three beats
+uv run python m07_prompt_demo.py --dry-run  # print the plan; call nothing
 ```
+
+The `# %%` cell markers let you run one beat at a time in the VS Code Interactive Window while you narrate.
+
+> Note: the Node.js `node-demo/` skeleton is superseded by `m07_prompt_demo.py`.
 
 ---
 Part of the [AI-103 course repository](https://github.com/timothywarner-org/ai103) by Tim Warner.

@@ -1,0 +1,404 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.35.1.17967",
+      "templateHash": "8675203232757261500"
+    }
+  },
+  "parameters": {
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]",
+      "metadata": {
+        "description": "Azure region. eastus2 carries the gpt-5 family + embeddings quota this course uses."
+      }
+    },
+    "accountName": {
+      "type": "string",
+      "metadata": {
+        "description": "Existing Foundry account name (from ai103-core.bicep outputs)."
+      }
+    },
+    "projectName": {
+      "type": "string",
+      "defaultValue": "proj-lesson-03",
+      "metadata": {
+        "description": "Existing Foundry project to attach the L3 resources to."
+      }
+    },
+    "baseName": {
+      "type": "string",
+      "defaultValue": "ai103-l03",
+      "metadata": {
+        "description": "Short base name for the L3 add-on resources."
+      }
+    },
+    "userObjectId": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Optional. Object ID of the demo user; gets keyless read roles on Search + Log Analytics."
+      }
+    },
+    "searchLocation": {
+      "type": "string",
+      "defaultValue": "westus3",
+      "metadata": {
+        "description": "Region for Azure AI Search (eastus2 free tier is capacity-constrained; westus3 has room)."
+      }
+    }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "l3-observability",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "baseName": {
+            "value": "[parameters('baseName')]"
+          },
+          "accountName": {
+            "value": "[parameters('accountName')]"
+          },
+          "projectName": {
+            "value": "[parameters('projectName')]"
+          },
+          "userObjectId": {
+            "value": "[parameters('userObjectId')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.35.1.17967",
+              "templateHash": "8943139635227931719"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string",
+              "metadata": {
+                "description": "Azure region."
+              }
+            },
+            "baseName": {
+              "type": "string",
+              "metadata": {
+                "description": "Short base name for L3 add-on resources, e.g. ai103-l03."
+              }
+            },
+            "accountName": {
+              "type": "string",
+              "metadata": {
+                "description": "Existing Foundry (Cognitive Services) account name."
+              }
+            },
+            "projectName": {
+              "type": "string",
+              "metadata": {
+                "description": "Existing Foundry project name to attach Application Insights to."
+              }
+            },
+            "userObjectId": {
+              "type": "string",
+              "defaultValue": "",
+              "metadata": {
+                "description": "Optional. Object ID of the user who runs the read-only demo; gets Log Analytics Reader. Leave empty to skip RBAC."
+              }
+            }
+          },
+          "variables": {
+            "roleLogAnalyticsReader": "73c42c96-874c-492b-b04d-ab87d138a893"
+          },
+          "resources": [
+            {
+              "type": "Microsoft.OperationalInsights/workspaces",
+              "apiVersion": "2023-09-01",
+              "name": "[format('log-{0}', parameters('baseName'))]",
+              "location": "[parameters('location')]",
+              "properties": {
+                "sku": {
+                  "name": "PerGB2018"
+                },
+                "retentionInDays": 30
+              }
+            },
+            {
+              "type": "Microsoft.Insights/components",
+              "apiVersion": "2020-02-02",
+              "name": "[format('appi-{0}', parameters('baseName'))]",
+              "location": "[parameters('location')]",
+              "kind": "web",
+              "properties": {
+                "Application_Type": "web",
+                "WorkspaceResourceId": "[resourceId('Microsoft.OperationalInsights/workspaces', format('log-{0}', parameters('baseName')))]"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.OperationalInsights/workspaces', format('log-{0}', parameters('baseName')))]"
+              ]
+            },
+            {
+              "type": "Microsoft.CognitiveServices/accounts/projects/connections",
+              "apiVersion": "2025-06-01",
+              "name": "[format('{0}/{1}/{2}', split(format('{0}/{1}', parameters('accountName'), parameters('projectName')), '/')[0], split(format('{0}/{1}', parameters('accountName'), parameters('projectName')), '/')[1], 'appinsights')]",
+              "properties": {
+                "category": "AppInsights",
+                "target": "[resourceId('Microsoft.Insights/components', format('appi-{0}', parameters('baseName')))]",
+                "authType": "ApiKey",
+                "credentials": {
+                  "key": "[reference(resourceId('Microsoft.Insights/components', format('appi-{0}', parameters('baseName'))), '2020-02-02').ConnectionString]"
+                },
+                "isSharedToAll": true,
+                "metadata": {
+                  "ApiType": "Azure",
+                  "ResourceId": "[resourceId('Microsoft.Insights/components', format('appi-{0}', parameters('baseName')))]"
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Insights/components', format('appi-{0}', parameters('baseName')))]"
+              ]
+            },
+            {
+              "condition": "[not(empty(parameters('userObjectId')))]",
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "scope": "[format('Microsoft.OperationalInsights/workspaces/{0}', format('log-{0}', parameters('baseName')))]",
+              "name": "[guid(resourceId('Microsoft.OperationalInsights/workspaces', format('log-{0}', parameters('baseName'))), parameters('userObjectId'), variables('roleLogAnalyticsReader'))]",
+              "properties": {
+                "principalId": "[parameters('userObjectId')]",
+                "principalType": "User",
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('roleLogAnalyticsReader'))]"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.OperationalInsights/workspaces', format('log-{0}', parameters('baseName')))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "appInsightsName": {
+              "type": "string",
+              "value": "[format('appi-{0}', parameters('baseName'))]"
+            },
+            "appInsightsConnectionString": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Insights/components', format('appi-{0}', parameters('baseName'))), '2020-02-02').ConnectionString]"
+            },
+            "logAnalyticsResourceId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.OperationalInsights/workspaces', format('log-{0}', parameters('baseName')))]"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "l3-search",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('searchLocation')]"
+          },
+          "baseName": {
+            "value": "[parameters('baseName')]"
+          },
+          "accountName": {
+            "value": "[parameters('accountName')]"
+          },
+          "projectName": {
+            "value": "[parameters('projectName')]"
+          },
+          "userObjectId": {
+            "value": "[parameters('userObjectId')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.35.1.17967",
+              "templateHash": "1191965992802301417"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string",
+              "metadata": {
+                "description": "Azure region."
+              }
+            },
+            "baseName": {
+              "type": "string",
+              "metadata": {
+                "description": "Short base name, e.g. ai103-l03."
+              }
+            },
+            "searchSku": {
+              "type": "string",
+              "defaultValue": "free",
+              "allowedValues": [
+                "free",
+                "basic",
+                "standard"
+              ],
+              "metadata": {
+                "description": "Search SKU. free = $0 (one per subscription); basic/standard add semantic ranking."
+              }
+            },
+            "accountName": {
+              "type": "string",
+              "metadata": {
+                "description": "Existing Foundry account name."
+              }
+            },
+            "projectName": {
+              "type": "string",
+              "metadata": {
+                "description": "Existing Foundry project name."
+              }
+            },
+            "userObjectId": {
+              "type": "string",
+              "defaultValue": "",
+              "metadata": {
+                "description": "Optional. Object ID of the demo user; gets keyless read/query roles."
+              }
+            }
+          },
+          "variables": {
+            "isFree": "[equals(parameters('searchSku'), 'free')]",
+            "roleSearchIndexDataContributor": "8ebe5a00-799e-43f5-93ac-243d3dce84a7",
+            "roleSearchServiceContributor": "7ca78c08-252a-4471-8644-bb5ff32d4ba0"
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Search/searchServices",
+              "apiVersion": "2024-06-01-preview",
+              "name": "[format('srch-{0}-{1}', parameters('baseName'), uniqueString(resourceGroup().id))]",
+              "location": "[parameters('location')]",
+              "sku": {
+                "name": "[parameters('searchSku')]"
+              },
+              "identity": "[if(variables('isFree'), createObject('type', 'None'), createObject('type', 'SystemAssigned'))]",
+              "properties": {
+                "replicaCount": 1,
+                "partitionCount": 1,
+                "hostingMode": "default",
+                "semanticSearch": "[if(variables('isFree'), 'disabled', 'free')]",
+                "publicNetworkAccess": "enabled",
+                "authOptions": {
+                  "aadOrApiKey": {
+                    "aadAuthFailureMode": "http403"
+                  }
+                }
+              }
+            },
+            {
+              "type": "Microsoft.CognitiveServices/accounts/projects/connections",
+              "apiVersion": "2025-06-01",
+              "name": "[format('{0}/{1}/{2}', split(format('{0}/{1}', parameters('accountName'), parameters('projectName')), '/')[0], split(format('{0}/{1}', parameters('accountName'), parameters('projectName')), '/')[1], 'aisearch')]",
+              "properties": {
+                "category": "CognitiveSearch",
+                "target": "[format('https://{0}.search.windows.net', format('srch-{0}-{1}', parameters('baseName'), uniqueString(resourceGroup().id)))]",
+                "authType": "AAD",
+                "isSharedToAll": true,
+                "metadata": {
+                  "ApiType": "Azure",
+                  "ResourceId": "[resourceId('Microsoft.Search/searchServices', format('srch-{0}-{1}', parameters('baseName'), uniqueString(resourceGroup().id)))]",
+                  "Location": "[parameters('location')]"
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Search/searchServices', format('srch-{0}-{1}', parameters('baseName'), uniqueString(resourceGroup().id)))]"
+              ]
+            },
+            {
+              "condition": "[not(empty(parameters('userObjectId')))]",
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "scope": "[format('Microsoft.Search/searchServices/{0}', format('srch-{0}-{1}', parameters('baseName'), uniqueString(resourceGroup().id)))]",
+              "name": "[guid(resourceId('Microsoft.Search/searchServices', format('srch-{0}-{1}', parameters('baseName'), uniqueString(resourceGroup().id))), parameters('userObjectId'), variables('roleSearchIndexDataContributor'))]",
+              "properties": {
+                "principalId": "[parameters('userObjectId')]",
+                "principalType": "User",
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('roleSearchIndexDataContributor'))]"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Search/searchServices', format('srch-{0}-{1}', parameters('baseName'), uniqueString(resourceGroup().id)))]"
+              ]
+            },
+            {
+              "condition": "[not(empty(parameters('userObjectId')))]",
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "scope": "[format('Microsoft.Search/searchServices/{0}', format('srch-{0}-{1}', parameters('baseName'), uniqueString(resourceGroup().id)))]",
+              "name": "[guid(resourceId('Microsoft.Search/searchServices', format('srch-{0}-{1}', parameters('baseName'), uniqueString(resourceGroup().id))), parameters('userObjectId'), variables('roleSearchServiceContributor'))]",
+              "properties": {
+                "principalId": "[parameters('userObjectId')]",
+                "principalType": "User",
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('roleSearchServiceContributor'))]"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Search/searchServices', format('srch-{0}-{1}', parameters('baseName'), uniqueString(resourceGroup().id)))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "searchName": {
+              "type": "string",
+              "value": "[format('srch-{0}-{1}', parameters('baseName'), uniqueString(resourceGroup().id))]"
+            },
+            "searchEndpoint": {
+              "type": "string",
+              "value": "[format('https://{0}.search.windows.net', format('srch-{0}-{1}', parameters('baseName'), uniqueString(resourceGroup().id)))]"
+            }
+          }
+        }
+      }
+    }
+  ],
+  "outputs": {
+    "appInsightsConnectionString": {
+      "type": "string",
+      "metadata": {
+        "description": "Paste into the L3 demo .env as the observability signal (LO2)."
+      },
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'l3-observability'), '2022-09-01').outputs.appInsightsConnectionString.value]"
+    },
+    "searchEndpoint": {
+      "type": "string",
+      "metadata": {
+        "description": "Paste into the L3 demo .env as SEARCH_ENDPOINT (LO3)."
+      },
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'l3-search'), '2022-09-01').outputs.searchEndpoint.value]"
+    },
+    "projectEndpoint": {
+      "type": "string",
+      "metadata": {
+        "description": "The project endpoint to paste into the L3 demo .env as FOUNDRY_PROJECT_ENDPOINT (LO2)."
+      },
+      "value": "[format('https://{0}.services.ai.azure.com/api/projects/{1}', parameters('accountName'), parameters('projectName'))]"
+    }
+  }
+}

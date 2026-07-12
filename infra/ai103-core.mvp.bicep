@@ -20,9 +20,13 @@ var modelName = 'gpt-5-mini'
 var modelVersion = '2025-08-07'
 var modelCapacity = 20   // 20K TPM rate limit; GlobalStandard is pay-per-token (no idle cost)
 
-var roleAzureAIDeveloper = '64702f94-c441-49e6-a78b-ef80e0188fee'
+// Keyless data-plane roles (matches the L4 lesson): Foundry User for Foundry project/agent
+// data actions, and Cognitive Services OpenAI User for model inference. We deliberately do NOT
+// grant Azure AI Developer -- it's scoped to Azure ML / hubs, not hub-less Foundry projects,
+// and it's the exam trap the deck calls out.
+var roleFoundryUser = '53ca6127-db72-4b80-b1b0-d745d6d5456d'            // formerly "Azure AI User"
 var roleCognitiveServicesOpenAIUser = '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd'
-var dataPlaneRoles = [ roleAzureAIDeveloper, roleCognitiveServicesOpenAIUser ]
+var dataPlaneRoles = [ roleFoundryUser, roleCognitiveServicesOpenAIUser ]
 
 resource account 'Microsoft.CognitiveServices/accounts@2025-06-01' = {
   name: accountName
@@ -45,6 +49,10 @@ resource deployment 'Microsoft.CognitiveServices/accounts/deployments@2025-06-01
   properties: {
     model: { format: 'OpenAI', name: modelName, version: modelVersion }
     versionUpgradeOption: 'NoAutoUpgrade'
+    // L5 responsible-AI-as-code: attach the content filter to the deployment. 'Microsoft.DefaultV2'
+    // is the built-in default filter (hate/violence/sexual/self-harm); name a CUSTOM RAI policy
+    // here to ship tighter thresholds with the deployment instead of clicking them in the portal.
+    raiPolicyName: 'Microsoft.DefaultV2'
   }
 }
 

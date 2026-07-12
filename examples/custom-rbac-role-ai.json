@@ -1,0 +1,26 @@
+{
+  "Name": "Contoso Foundry AI Developer",
+  "IsCustom": true,
+  "Description": "Least-privilege role for AI application developers working in Microsoft Foundry. Grants full control-plane management of Cognitive Services / AI Services accounts and their model deployments, plus read-only access to monitoring signals, so a developer can ship and observe agents without Owner rights. Deliberately withholds key retrieval, key regeneration, and account deletion (see NotActions) to enforce keyless (Entra ID) authentication and protect the resource. Data-plane inference is granted through DataActions so the same identity can actually call the deployed models.",
+  "Actions": [
+    "Microsoft.CognitiveServices/accounts/*",
+    "Microsoft.Insights/metrics/read",
+    "Microsoft.Insights/metricDefinitions/read",
+    "Microsoft.Insights/diagnosticSettings/read",
+    "Microsoft.Insights/logDefinitions/read",
+    "Microsoft.Resources/subscriptions/resourceGroups/read"
+  ],
+  "NotActions": [
+    "Microsoft.CognitiveServices/accounts/delete",
+    "Microsoft.CognitiveServices/accounts/listKeys/action",
+    "Microsoft.CognitiveServices/accounts/regenerateKey/action"
+  ],
+  "DataActions": [
+    "Microsoft.CognitiveServices/accounts/OpenAI/*/read",
+    "Microsoft.CognitiveServices/accounts/OpenAI/*/action"
+  ],
+  "NotDataActions": [],
+  "AssignableScopes": [
+    "/subscriptions/92fd53f2-c38e-461a-9f50-e1ef3382c54c/resourceGroups/rg-ai103-core"
+  ]
+}

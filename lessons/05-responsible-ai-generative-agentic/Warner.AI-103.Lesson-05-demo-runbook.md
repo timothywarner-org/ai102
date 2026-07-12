@@ -6,7 +6,7 @@ Read-only demo -- nothing in production is changed; the one thing we create (a c
 
 ## Pre-flight (before recording)
 - Edge open, signed in, two tabs: **ai.azure.com** (Foundry) and **portal.azure.com** (Azure).
-- Foundry project `proj-lesson-05` open on the `aif-ai103-mvp` account, with the **gpt-5-mini** deployment live (from Lesson 3).
+- Foundry project `proj-lesson-05` open on the `aif-ai103-mvp-quc6kxy2j2v2q` account, with the **gpt-5-mini** deployment live -- it's both the app model and the eval **judge** (one deployment; see Segment 2).
 - VS Code open on the `ai103` workspace, `m05_evals_demo.py` visible, integrated terminal ready.
 - `az login` done; `.env` filled in; `uv sync` already run in the lesson folder.
 
@@ -39,7 +39,7 @@ Read-only demo -- nothing in production is changed; the one thing we create (a c
 
 [SAY] Second control: instrumentation. A filter stops the obviously harmful stuff, but it can't tell me whether a good-looking answer is actually grounded in my data or just confidently wrong. That's what evaluators do -- they score quality and safety on real query-and-response pairs. And this is the one place in this lesson where code is genuinely the right surface, because you'll wire these into a pipeline to gate a release, not run them by hand.
 
-[SAY] I'm using the Azure AI Evaluation SDK. Groundedness asks "is this answer supported by the source I retrieved?" and Relevance asks "does it actually address the question?" Both are LLM-as-a-judge, so they use my gpt-5-mini deployment as the grader, and notice the config carries a credential, not an API key -- keyless, the same posture from the security lesson.
+[SAY] I'm using the Azure AI Evaluation SDK. Groundedness asks "is this answer supported by the source I retrieved?" and Relevance asks "does it actually address the question?" Both are LLM-as-a-judge, so they need a grader model. Now you might be thinking, hang on, Tim, can gpt-5 even be the judge? Because the eval SDK sends a max_tokens parameter, and the gpt-5 family wants max_completion_tokens instead. And the answer is yes, with one flag: I set is_reasoning_model to true, the evaluator switches to the dialect gpt-5 speaks, and I grade with the very same gpt-5-mini we run the app on -- no second model to stand up. And notice the config carries a credential, not an API key -- keyless, the same posture from the security lesson.
 
 [DO] **VS Code** > `m05_evals_demo.py` > run the **model-config cell** with **Shift+Enter** (`build_model_config` -- the keyless judge), then run the **quality cell** (`run_quality`).
 [VERIFY] The terminal prints two blocks -- a grounded answer and a fabricated answer -- each with a groundedness and a relevance score.
@@ -50,10 +50,10 @@ Read-only demo -- nothing in production is changed; the one thing we create (a c
 [SAY] Safety scoring is a sibling of this. The content-safety evaluator calls the Azure evaluation service rather than my judge model, so it's an opt-in beat -- run with the safety flag and it scores harmful-content rates, or skips cleanly if the service isn't wired in this region.
 [DO] Optionally run `python m05_evals_demo.py --safety` to add the content-safety score.
 
-[SAY] That low groundedness number is the whole point -- it's a hallucination caught by a machine instead of a customer. Drop this into CI and you can fail the build when groundedness falls below your bar.
+[SAY] And this is why it belongs in code: drop these evaluators into CI and you can fail the build the moment groundedness falls below your bar, so a regression like that fabricated answer never ships to a customer in the first place.
 
 [PAUSE] Hold two beats on the two scores side by side.
-[IF IT BREAKS] If an evaluator errors on the judge model, narrate it honestly -- evaluators need a deployed judge model, which is why we deployed gpt-5-mini in Lesson 3 -- and fall back to the dry-run that prints the schema.
+[IF IT BREAKS] If an evaluator errors on the judge model, narrate it honestly -- evaluators need a deployed judge model, here gpt-5-mini with is_reasoning_model set -- and fall back to the dry-run that prints the schema.
 
 ---
 
