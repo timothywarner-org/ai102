@@ -1,0 +1,42 @@
+// =============================================================================
+// AI-103 Lesson 11 -- Query B: follow one request across a multi-agent hand-off
+//
+// This is the query that makes orchestration observable. Every agent that
+// participates in ONE customer request shares a single operation_Id, so this
+// reconstructs the whole journey: triage -> specialist -> tool -> answer.
+//
+// This is the query that returns nothing if your agents run in separate
+// processes without distributed tracing wired up. If it returns rows, your
+// multi-agent telemetry is genuinely correct.
+//
+// Paste into: Application Insights -> Logs
+// =============================================================================
+dependencies
+| where timestamp > ago(24h)
+| where name startswith "executor.process"
+    or name startswith "invoke_agent"
+    or name startswith "execute_tool"
+    or name startswith "workflow.run"
+| extend step = case(
+    name startswith "workflow.run",     "0-workflow",
+    name startswith "executor.process", strcat("1-agent:", tostring(split(name, " ")[1])),
+    name startswith "invoke_agent",     strcat("2-invoke:", tostring(split(name, " ")[1])),
+                                        strcat("3-tool:",   tostring(split(name, " ")[1]))
+)
+// Classify each span, then aggregate. Building the agent and tool names as
+// nullable columns keeps make_set() clean: make_set skips nulls, so there is no
+// empty-string bucket to strip afterwards.
+| extend
+    agent_name = iff(name startswith "executor.process", tostring(split(name, " ")[1]), ""),
+    tool_name  = iff(name startswith "execute_tool",     tostring(split(name, " ")[1]), "")
+| summarize
+    agents      = make_set_if(agent_name, isnotempty(agent_name)),
+    tools       = make_set_if(tool_name,  isnotempty(tool_name)),
+    span_count  = count(),
+    total_ms    = round(sum(duration), 1),
+    started     = min(timestamp)
+    by operation_Id
+// Keep only genuine multi-agent traces: more than one distinct agent involved.
+| where array_length(agents) > 1
+| project started, operation_Id, agents, tools, span_count, total_ms
+| order by started desc

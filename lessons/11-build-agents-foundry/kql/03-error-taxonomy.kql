@@ -1,0 +1,27 @@
+// =============================================================================
+// AI-103 Lesson 11 -- Query C: error taxonomy
+//
+// "What is actually going wrong, and how often?" Error analysis is a frozen
+// objective for this lesson, and the useful version groups failures by KIND
+// rather than listing them one by one.
+//
+// The demos deliberately generate an unhappy path (an invoice ID that does not
+// exist), because "the tool found nothing" is the most common real failure an
+// agent hits in production -- and it is NOT an exception, so it never shows up
+// in a naive success == false filter. Both shapes are covered below.
+//
+// Paste into: Application Insights -> Logs
+// =============================================================================
+// Part 1 -- hard failures: spans that actually errored.
+dependencies
+| where timestamp > ago(24h)
+| where success == false
+| extend
+    component = tostring(split(name, " ")[0]),
+    subject   = tostring(split(name, " ")[1])
+| summarize
+    occurrences = count(),
+    example     = any(name),
+    last_seen   = max(timestamp)
+    by component, subject, resultCode
+| order by occurrences desc

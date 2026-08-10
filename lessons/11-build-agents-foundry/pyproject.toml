@@ -1,0 +1,27 @@
+[project]
+name = "ai103-m11-demos"
+version = "1.0.0"
+description = "AI-103 Module 11 demo: multi-agent hand-off and agent observability, keyless via Entra ID."
+readme = "README.md"
+# Microsoft Agent Framework GA wheels publish for Python 3.10 - 3.13 only.
+requires-python = ">=3.10,<3.14"
+dependencies = [
+    "azure-identity>=1.19.0",
+    "agent-framework-foundry>=1.0.0",
+    # HandoffBuilder and the other orchestration builders live in their own
+    # package. agent_framework.orchestrations exposes lazy-loaded stubs, so the
+    # import succeeds without this and only fails at call time. Pin it here.
+    "agent-framework-orchestrations>=1.0.0",
+    "azure-monitor-opentelemetry>=1.8.9",
+    "openai>=1.109.0",
+    "pydantic>=2.0.0",
+    "python-dotenv>=1.0.0",
+]
+
+[tool.pylint.format]
+max-line-length = 120
+
+[tool.pylint.typecheck]
+# agent_framework lazy-loads its submodules through __getattr__, which astroid
+# cannot follow. Without this, pylint reports false no-name-in-module errors.
+ignored-modules = ["agent_framework", "agent_framework.foundry", "agent_framework.orchestrations"]
