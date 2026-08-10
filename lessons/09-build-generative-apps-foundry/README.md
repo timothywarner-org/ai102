@@ -17,22 +17,40 @@ Quoted verbatim from the AI-103 objective domain:
 
 ## Demos
 
-Run demos directly from this folder.
+Run demos directly from this folder (uv-managed Python, keyless via Entra ID).
 
-No demo exists yet for this module. Placeholder run steps:
+### `eval_trace.py` -- evaluate + observe a Foundry RAG app
+
+The code spine of the lesson. Against the Lesson 8 Contoso Cloud RAG index, it
+does the two things L9 is about: **evaluate** answer quality with Foundry's
+built-in evaluators (Groundedness + Relevance) and gate a release on the score,
+and **observe** the app by instrumenting it with OpenTelemetry and shipping
+traces, tokens, and latency to Application Insights -- viewable in the Azure
+portal, the Foundry portal, and via KQL.
 
 ```bash
-# 1. Copy the env template and fill in your values
-cp .env.example .env
+# One-time setup
+az login                 # keyless -- SDKs borrow this identity
+cp .env.example .env     # fill in your endpoints + App Insights conn string
+uv sync
 
-# 2. Install dependencies (Python or Node, per the demo added here)
-# pip install -r requirements.txt
-# npm install
+# EVALUATE: score answers (Groundedness + Relevance, 1-5) and gate on a threshold
+uv run eval_trace.py evaluate
 
-# 3. Run the demo
-# python demo.py
-# node demo.js
+# OBSERVE: run traced RAG turns; telemetry ships to Application Insights
+uv run eval_trace.py trace
+
+# Then watch the traces land in:
+#   * Azure portal   -> appi-ai103-l09 > Transaction search
+#   * Foundry portal -> proj-lesson-08 > Tracing
+#   * Log Analytics  -> run the queries in kql/traces.kql
 ```
+
+Infrastructure (Application Insights + Log Analytics, connected to the project
+as the `appinsights` connection) is provisioned by
+`infra/modules/observability.bicep`. The full click-by-click demo script is in
+`Warner.AI-103.Lesson-09-demo-runbook.md`; KQL for the trace/token/latency data
+is in `kql/traces.kql`.
 
 ---
 Part of the [AI-103 course repository](https://github.com/timothywarner-org/ai103) by Tim Warner.

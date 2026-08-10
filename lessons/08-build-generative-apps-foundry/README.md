@@ -17,22 +17,43 @@ Quoted verbatim from the AI-103 objective domain:
 
 ## Demos
 
-Run demos directly from this folder.
+Run demos directly from this folder (uv-managed Python, keyless via Entra ID).
 
-No demo exists yet for this module. Placeholder run steps:
+### `rag.py` -- classic RAG, end to end, in code
+
+The code half of the lesson. The portal shows the managed **knowledge base**
+abstraction (Foundry IQ / agentic retrieval); this shows **classic RAG** -- the
+pattern you own: **ingest -> embed -> retrieve -> inject -> generate-grounded**.
+Runs against a dedicated Azure AI Search instance + a Foundry project with a
+chat model (`gpt-5-mini`) and an embedding model (`text-embedding-3-large`).
+Keyless throughout (Entra ID via `az login`).
 
 ```bash
-# 1. Copy the env template and fill in your values
-cp .env.example .env
+# One-time setup
+az login                 # keyless -- SDKs borrow this identity, no keys on disk
+cp .env.example .env     # fill in your endpoints
+uv sync                  # install dependencies
 
-# 2. Install dependencies (Python or Node, per the demo added here)
-# pip install -r requirements.txt
-# npm install
+# (a) Run the embedding job: build the index + embed every KB article
+uv run rag.py ingest
 
-# 3. Run the demo
-# python demo.py
-# node demo.js
+# (b) Retrieval in code: hybrid (keyword + vector) search
+uv run rag.py search "how do I rotate API keys without dropping sessions?"
+
+# Full RAG loop: retrieve + inject + grounded answer (cites its sources)
+uv run rag.py ask "how do I rotate API keys without dropping sessions?"
+
+# (c) Force reindexing after adding a new document, and prove it's retrievable
+uv run rag.py reindex
 ```
+
+Infrastructure (dedicated Azure AI Search + the model deployments) is
+provisioned by `infra/modules/search.bicep` and connected to the project as the
+`aisearch` connection -- the preferred Azure AI Search connector. The FREE
+search tier is used, so there is no semantic reranker; hybrid search alone still
+returns strong results. Required roles (**Search Index Data Contributor**,
+**Search Service Contributor**, **Cognitive Services OpenAI User**) are granted
+by the infra templates. `seed_index.py` remains as a minimal index-only seeder.
 
 ---
 Part of the [AI-103 course repository](https://github.com/timothywarner-org/ai103) by Tim Warner.

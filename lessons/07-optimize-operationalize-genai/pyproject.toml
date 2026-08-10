@@ -9,6 +9,8 @@ dependencies = [
     "azure-ai-projects>=2.0.0b2",
     "openai>=1.109.0",
     "python-dotenv>=1.0.0",
+    "azure-monitor-opentelemetry>=1.8.9",
+    "opentelemetry-instrumentation-openai-v2>=2.4b0",
 ]
 
 [tool.pylint.format]

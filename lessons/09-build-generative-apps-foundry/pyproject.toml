@@ -1,0 +1,18 @@
+[project]
+name = "ai103-m09-demos"
+version = "1.0.0"
+description = "AI-103 Module 9 demo: evaluate + observe a Foundry RAG app -- azure-ai-evaluation, OpenTelemetry, and Application Insights, keyless via Entra ID."
+readme = "README.md"
+requires-python = ">=3.10,<3.14"
+dependencies = [
+    "azure-identity>=1.19.0",
+    "azure-search-documents>=11.5.2",
+    "openai>=1.109.0",
+    "python-dotenv>=1.0.0",
+    "azure-monitor-opentelemetry>=1.8.9",
+    "opentelemetry-instrumentation-openai-v2>=2.4b0",
+    "azure-ai-evaluation>=1.18.0",
+]
+
+[tool.pylint.format]
+max-line-length = 120

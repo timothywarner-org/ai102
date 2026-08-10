@@ -1,0 +1,314 @@
+// =============================================================================
+// AI-103 Lesson 9 -- Agent + RAG telemetry queries
+// Target: Application Insights appi-ai103-l09 (workspace log-ai103-l09 behind it)
+//
+// DIALECT: these queries use the CLASSIC / Application Insights table names,
+// because that is what the Logs blade shows when you open it from the
+// Application Insights resource. Table = dependencies, property bag =
+// customDimensions, timestamp column = timestamp.
+//
+// If you open Logs from the LOG ANALYTICS WORKSPACE instead, you get the other
+// set of names: AppDependencies / Properties / TimeGenerated. Same data, two
+// doorways. The conversion table is at the bottom of this file.
+//
+// Microsoft Learn, telemetry data model, "Types of telemetry" -- the official
+// side-by-side mapping of both name sets:
+//   https://learn.microsoft.com/azure/azure-monitor/app/data-model-complete#types-of-telemetry
+// Microsoft Learn, log query scope -- why the blade you open decides the names:
+//   https://learn.microsoft.com/azure/azure-monitor/logs/scope#query-scope
+//
+// Portal deep links -- paste into the address bar, already scoped to the resource:
+//
+//   Logs (KQL editor) -- CLASSIC names, which is what this file uses
+//   https://portal.azure.com/#resource/subscriptions/92fd53f2-c38e-461a-9f50-e1ef3382c54c/resourceGroups/rg-ai103-mvp/providers/microsoft.insights/components/appi-ai103-l09/logs
+//
+//   Transaction search
+//   https://portal.azure.com/#resource/subscriptions/92fd53f2-c38e-461a-9f50-e1ef3382c54c/resourceGroups/rg-ai103-mvp/providers/microsoft.insights/components/appi-ai103-l09/searchV1
+//
+//   Live metrics
+//   https://portal.azure.com/#resource/subscriptions/92fd53f2-c38e-461a-9f50-e1ef3382c54c/resourceGroups/rg-ai103-mvp/providers/microsoft.insights/components/appi-ai103-l09/quickPulse
+//
+//   Application map
+//   https://portal.azure.com/#resource/subscriptions/92fd53f2-c38e-461a-9f50-e1ef3382c54c/resourceGroups/rg-ai103-mvp/providers/microsoft.insights/components/appi-ai103-l09/applicationMap
+//
+//   Failures
+//   https://portal.azure.com/#resource/subscriptions/92fd53f2-c38e-461a-9f50-e1ef3382c54c/resourceGroups/rg-ai103-mvp/providers/microsoft.insights/components/appi-ai103-l09/failures
+//
+//   Workspace-side Logs -- WORKSPACE names (AppDependencies / Properties)
+//   https://portal.azure.com/#resource/subscriptions/92fd53f2-c38e-461a-9f50-e1ef3382c54c/resourceGroups/rg-ai103-mvp/providers/microsoft.operationalinsights/workspaces/log-ai103-l09/logs
+//
+//   Search service (index health)
+//   https://portal.azure.com/#resource/subscriptions/92fd53f2-c38e-461a-9f50-e1ef3382c54c/resourceGroups/rg-ai103-mvp/providers/microsoft.search/searchServices/srch-ai103-basic-gcn5/overview
+//
+// Multi-tenant note: if the portal opens the wrong directory, insert your tenant
+// right after the hash, like https://portal.azure.com/#@contoso.onmicrosoft.com/resource/...
+// =============================================================================
+
+
+// -----------------------------------------------------------------------------
+// Q0 -- HEARTBEAT. Is anything at all landing right now?
+// Run this first. If Newest is older than a few minutes after a demo run, you are
+// either inside the 1-3 minute ingestion window or the exporter never flushed.
+// -----------------------------------------------------------------------------
+dependencies
+| where timestamp > ago(1h)
+| summarize Spans = count(), Newest = max(timestamp)
+
+
+// -----------------------------------------------------------------------------
+// Q1 -- INVENTORY. What operations are arriving, and how fresh is each one?
+// Expect invoke_agent, execute_tool, chat, plus the SDK spans (rag.turn,
+// embeddings, and the Azure AI Search POST).
+// -----------------------------------------------------------------------------
+dependencies
+| where timestamp > ago(24h)
+| extend cd = parse_json(customDimensions)
+| where isnotempty(cd["gen_ai.operation.name"])
+| summarize Calls = count(), Latest = max(timestamp)
+    by Operation = tostring(cd["gen_ai.operation.name"]), name
+| order by Latest desc
+
+
+// -----------------------------------------------------------------------------
+// Q2 -- LATEST RUN, FULL SPAN TREE. No hardcoded operation_Id; it finds the most
+// recent agent invocation for you. This is the one to have on screen when you
+// say "here is the whole request, top to bottom."
+// -----------------------------------------------------------------------------
+let latestRun = toscalar(
+    dependencies
+    | where timestamp > ago(24h)
+    | extend cd = parse_json(customDimensions)
+    | where tostring(cd["gen_ai.operation.name"]) == "invoke_agent"
+    | top 1 by timestamp desc
+    | project operation_Id
+);
+dependencies
+| where operation_Id == latestRun
+| extend cd = parse_json(customDimensions)
+| extend Op = tostring(cd["gen_ai.operation.name"])
+| project timestamp, name, Op, duration, id, operation_ParentId, operation_Id
+| order by timestamp asc
+
+
+// -----------------------------------------------------------------------------
+// Q3 -- GROUNDING AUDIT. Per retrieval, how many of the returned sources actually
+// came from OUR index versus the open web? Rewritten and verified live 2026-07-26.
+//
+// WHY THE OLD VERSION WAS WRONG: it extracted https:// hostnames from the tool
+// result. The knowledge base returns TITLES, not URLs, so that query always came
+// back with a single empty row -- which reads as "clean" when it is anything but.
+// The real tell is the SHAPE of each source block: m365-knowledge documents come
+// back as a JSON object with a "category" field; web results come back as a bare
+// title line. Count the two and compare.
+//
+// Verified output on the two captured runs (2026-07-25):
+//   m365-agent:3  15 sources,  1 from KB, 14 from web  ->  6.7% grounded
+//   m365-agent:2  30 sources,  1 from KB, 29 from web  ->  3.3% grounded
+// -----------------------------------------------------------------------------
+dependencies
+| where timestamp > ago(24h)
+| extend cd = parse_json(customDimensions)
+| where tostring(cd["gen_ai.operation.name"]) == "execute_tool"
+| extend Result = tostring(cd["gen_ai.tool.call.result"])
+| extend Sources = toint(extract(@"Retrieved (\d+) documents", 1, Result))
+| extend KbDocs  = array_length(extract_all(@"""(category)""\s*:", Result))
+| extend WebDocs = Sources - KbDocs
+| project timestamp, operation_Id,
+          Agent = tostring(cd["gen_ai.agent.name"]),
+          Ver   = tostring(cd["gen_ai.agent.version"]),
+          Sources, KbDocs, WebDocs,
+          KbSharePct = iff(Sources > 0, round(100.0 * KbDocs / Sources, 1), 0.0)
+| order by timestamp desc
+
+
+// -----------------------------------------------------------------------------
+// Q4 -- COST AND CACHE, PER CONVERSATION. CacheHitPct is the share of input
+// tokens served from the prompt cache. A stable system prompt should push this
+// high, and cached input tokens bill at a discount.
+// -----------------------------------------------------------------------------
+dependencies
+| where timestamp > ago(7d)
+| extend cd = parse_json(customDimensions)
+| where tostring(cd["gen_ai.operation.name"]) == "chat"
+| extend Conv   = tostring(cd["gen_ai.conversation.id"]),
+         InTok  = tolong(cd["gen_ai.usage.input_tokens"]),
+         OutTok = tolong(cd["gen_ai.usage.output_tokens"]),
+         Cached = tolong(cd["gen_ai.usage.cached_tokens"])
+| summarize Calls = count(),
+            InputTokens  = sum(InTok),
+            OutputTokens = sum(OutTok),
+            CachedTokens = sum(Cached),
+            TotalMs      = round(sum(duration))
+    by Conversation = Conv
+| extend CacheHitPct = iff(InputTokens > 0, round(100.0 * CachedTokens / InputTokens, 1), 0.0)
+| order by InputTokens desc
+
+
+// -----------------------------------------------------------------------------
+// Q5 -- LATENCY DECOMPOSITION. Where does the wall clock actually go? On the
+// captured reference run, retrieval ate 8.5 seconds of a 15.2 second turn, and
+// the model call was only 1.4 seconds. Retrieval is usually the long pole.
+// -----------------------------------------------------------------------------
+dependencies
+| where timestamp > ago(24h)
+| extend cd = parse_json(customDimensions)
+| extend Op = tostring(cd["gen_ai.operation.name"])
+| where Op in ("invoke_agent", "execute_tool", "chat", "embeddings")
+| summarize Calls = count(),
+            P50Ms = round(percentile(duration, 50)),
+            P95Ms = round(percentile(duration, 95)),
+            MaxMs = round(max(duration))
+    by Op
+| order by P95Ms desc
+
+
+// -----------------------------------------------------------------------------
+// Q6 -- INDEX DRIFT AUDIT. Which Azure AI Search indexes are actually being hit?
+// If contoso-support shows up alongside m365-knowledge, a stale SEARCH_INDEX_NAME
+// is winning over the project .env. Fix with load_dotenv(override=True).
+// -----------------------------------------------------------------------------
+dependencies
+| where timestamp > ago(7d)
+| where name has "/docs/search"
+| extend Index = extract(@"indexes\('([^']+)'\)", 1, name)
+| where isnotempty(Index)
+| summarize Calls = count(), Latest = max(timestamp),
+            P95Ms = round(percentile(duration, 95))
+    by Index
+| order by Latest desc
+
+
+// -----------------------------------------------------------------------------
+// Q7 -- AGENT VERSION COMPARISON. Every instruction edit creates a new version,
+// and the version rides along on the span. This is how you A/B a prompt change on
+// latency instead of arguing about it.
+// -----------------------------------------------------------------------------
+dependencies
+| where timestamp > ago(7d)
+| extend cd = parse_json(customDimensions)
+| where tostring(cd["gen_ai.operation.name"]) == "invoke_agent"
+| summarize Runs = count(),
+            P50Ms = round(percentile(duration, 50)),
+            P95Ms = round(percentile(duration, 95))
+    by Agent   = tostring(cd["gen_ai.agent.name"]),
+       Version = tostring(cd["gen_ai.agent.version"])
+| order by Version asc
+
+
+// -----------------------------------------------------------------------------
+// Q8 -- CITATION COMPLIANCE. The agent instructions demand bracketed citations.
+// This counts how many answers actually shipped one. Instructions are a request,
+// not a guarantee, and this query is the receipt.
+// -----------------------------------------------------------------------------
+dependencies
+| where timestamp > ago(24h)
+| extend cd = parse_json(customDimensions)
+| where tostring(cd["gen_ai.operation.name"]) == "chat"
+| extend Answer = tostring(cd["gen_ai.output.messages"])
+| extend HasCitation = Answer matches regex @"\[[^\]]{4,}\]"
+| summarize Answers = count() by HasCitation
+
+
+// -----------------------------------------------------------------------------
+// Q9 -- PROMPT AND ANSWER SPOT CHECK. Read what the model was actually sent and
+// what it actually said. Requires content capture to be on.
+// -----------------------------------------------------------------------------
+dependencies
+| where timestamp > ago(24h)
+| extend cd = parse_json(customDimensions)
+| where tostring(cd["gen_ai.operation.name"]) == "chat"
+| extend In  = tostring(cd["gen_ai.input.messages"]),
+         Out = tostring(cd["gen_ai.output.messages"])
+| project timestamp, operation_Id,
+          Sent     = substring(In, 0, 400),
+          Received = substring(Out, 0, 800)
+| order by timestamp desc
+| take 5
+
+
+// -----------------------------------------------------------------------------
+// Q10 -- TOKEN BURN OVER TIME. Renders as a chart, which films well.
+// -----------------------------------------------------------------------------
+dependencies
+| where timestamp > ago(24h)
+| extend cd = parse_json(customDimensions)
+| where tostring(cd["gen_ai.operation.name"]) == "chat"
+| extend InTok  = tolong(cd["gen_ai.usage.input_tokens"]),
+         OutTok = tolong(cd["gen_ai.usage.output_tokens"])
+| summarize InputTokens = sum(InTok), OutputTokens = sum(OutTok)
+    by bin(timestamp, 15m)
+| render timechart
+
+
+// -----------------------------------------------------------------------------
+// Q11 -- FAILURES. Anything that did not come back clean.
+// -----------------------------------------------------------------------------
+dependencies
+| where timestamp > ago(24h)
+| where success == false
+| project timestamp, name, resultCode, duration, operation_Id
+| order by timestamp desc
+| take 50
+
+// Exceptions live in their own table. Run this separately.
+exceptions
+| where timestamp > ago(24h)
+| project timestamp, type, outerMessage, problemId, operation_Id
+| order by timestamp desc
+| take 50
+
+
+// -----------------------------------------------------------------------------
+// Q12 -- KEY DISCOVERY. When a column comes back empty, stop guessing. Dump the
+// property bag and read the real key names.
+// -----------------------------------------------------------------------------
+dependencies
+| where timestamp > ago(24h)
+| where isnotempty(customDimensions)
+| take 1
+| project customDimensions
+
+
+// =============================================================================
+// APPENDIX -- DIALECT CONVERSION
+//
+// Run these queries at WORKSPACE scope (the log-ai103-l09 Logs blade) by applying
+// this mapping. The logic never changes, only the identifiers.
+//
+//   Application Insights blade        Log Analytics workspace blade
+//   --------------------------        -----------------------------
+//   dependencies                      AppDependencies
+//   requests                          AppRequests
+//   traces                            AppTraces
+//   exceptions                        AppExceptions
+//   customEvents                      AppEvents
+//   timestamp                         TimeGenerated
+//   duration                          DurationMs
+//   operation_Id                      OperationId
+//   operation_ParentId                ParentId
+//   id                                Id
+//   name                              Name
+//   success                           Success
+//   resultCode                        ResultCode
+//   customDimensions                  Properties
+//   type (exceptions)                 ExceptionType
+//   outerMessage (exceptions)         OuterMessage
+//   problemId (exceptions)            ProblemId
+//
+// Both column sets carry the same values, and duration / DurationMs are both in
+// milliseconds, so every percentile and sum above ports over untouched.
+//
+// Same query, both dialects, so you can see it side by side:
+//
+//   dependencies
+//   | where timestamp > ago(1h)
+//   | summarize Spans = count(), Newest = max(timestamp)
+//
+//   AppDependencies
+//   | where TimeGenerated > ago(1h)
+//   | summarize Spans = count(), Newest = max(TimeGenerated)
+//
+// The parse_json(customDimensions) step in the classic dialect matches how
+// Microsoft writes its own documented examples. Direct indexing usually works
+// too, but parse_json is the form that never surprises you.
+// =============================================================================

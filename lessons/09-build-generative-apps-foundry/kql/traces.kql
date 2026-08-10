@@ -1,0 +1,65 @@
+// =============================================================================
+// Lesson 9 -- KQL for Foundry GenAI telemetry in Log Analytics / App Insights
+//
+// Run these in: Azure portal > appi-ai103-l09 > Logs  (or the Log Analytics
+// workspace log-ai103-l09). OpenTelemetry GenAI spans from the demo land in the
+// `dependencies` table; the model's token counts ride along in customDimensions
+// under the OTel GenAI semantic-convention keys (gen_ai.usage.*).
+//
+// Note: exact customDimensions key names track the instrumentation version. If a
+// column comes back empty, run query 0 first to see the real keys and adjust.
+// =============================================================================
+
+
+// -----------------------------------------------------------------------------
+// QUERY 0 (orientation) -- what did the demo actually emit? See the raw span
+// names and the customDimensions keys available to you.
+// -----------------------------------------------------------------------------
+dependencies
+| where timestamp > ago(1h)
+| project timestamp, name, type, duration, customDimensions
+| order by timestamp desc
+| take 20
+
+
+// -----------------------------------------------------------------------------
+// QUERY 1 -- recent model calls: latency + token usage, newest first.
+// The bread-and-butter "what is my app doing right now" view.
+// -----------------------------------------------------------------------------
+dependencies
+| where timestamp > ago(1h)
+| where isnotempty(tostring(customDimensions["gen_ai.usage.output_tokens"]))
+| extend model      = tostring(customDimensions["gen_ai.request.model"]),
+         in_tokens  = toint(customDimensions["gen_ai.usage.input_tokens"]),
+         out_tokens = toint(customDimensions["gen_ai.usage.output_tokens"])
+| project timestamp, name, model, duration_ms = duration, in_tokens, out_tokens, operation_Id
+| order by timestamp desc
+
+
+// -----------------------------------------------------------------------------
+// QUERY 2 -- throughput + cost + P95 latency, bucketed in 5-minute windows.
+// This is the shape you would pin to a dashboard or wire an alert to.
+// -----------------------------------------------------------------------------
+dependencies
+| where timestamp > ago(24h)
+| where isnotempty(tostring(customDimensions["gen_ai.usage.output_tokens"]))
+| extend in_tokens  = toint(customDimensions["gen_ai.usage.input_tokens"]),
+         out_tokens = toint(customDimensions["gen_ai.usage.output_tokens"])
+| summarize calls        = count(),
+            total_in     = sum(in_tokens),
+            total_out    = sum(out_tokens),
+            p95_latency_ms = percentile(duration, 95)
+          by bin(timestamp, 5m)
+| order by timestamp desc
+
+
+// -----------------------------------------------------------------------------
+// QUERY 3 -- one full request, end to end. Paste an operation_Id printed by
+// `eval_trace.py trace` to replay a single RAG turn: the parent rag.turn span
+// plus its retrieval and model-call children, in order.
+// -----------------------------------------------------------------------------
+let op = "PASTE_operation_Id_HERE";
+union dependencies, requests, traces
+| where operation_Id == op
+| project timestamp, itemType, name, duration, message
+| order by timestamp asc
