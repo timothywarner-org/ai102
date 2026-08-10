@@ -40,7 +40,7 @@ You operate across **two folders**, opened together via `C:\Users\timot\Desktop\
 
 ## Repo structure
 
-- `lessons/NN-topic/` -- per-lesson demo code, a learner README, and (for recorded lessons) a `Warner.AI-103.Lesson-NN-demo-runbook.md`. **Lessons 01-11 have real, runnable demos; 12-18 are still scaffolds** (no demo code, no `.env.example`). Highlights: 01 is the flagship (`m01_agent_demo.py` + `model_bakeoff.py`), 02 is `m02_setup_demo.py`, 03 is `m03_ops_demo.py` (read-only ops signals) plus `m03_generate_signal.py` and the `m03_ops_tour.ipynb` student notebook, 05 is `m05_evals_demo.py`, 08 is `rag.py`, 09 is `eval_trace.py` + `kql/`, **10 is `m10_tools_repl.py` (interactive tool-schema REPL) + `function_calling.py`**, and **11 is `m11_multi_agent.py` (HandoffBuilder routing) + `m11_approval_flow.py` (approval gates) + `kql/`**. Several instructor demos ship a paired `mNN_*_tour.ipynb` student notebook and a `seed_index.py`-style one-time setup script where the demo reads a persistent resource. `fixes-to-make.md` (repo root) tracks which lessons still need demos.
+- `lessons/NN-topic/` -- per-lesson demo code, a learner README, and (for recorded lessons) a `Warner.AI-103.Lesson-NN-demo-runbook.md`. **Lessons 01-11 all have real demo assets; 12-18 are still scaffolds** (no demo code, no `.env.example`). Note **L04 is deliberately Python-free** -- it is a portal + PowerShell (`deploy-secure-foundry.ps1`) + Bicep lesson, per the demo-surface rule below, so "no `.py` here" is correct rather than missing. Highlights: 01 is the flagship (`m01_agent_demo.py` + `model_bakeoff.py`), 02 is `m02_setup_demo.py`, 03 is `m03_ops_demo.py` (read-only ops signals) plus `m03_generate_signal.py` and the `m03_ops_tour.ipynb` student notebook, 05 is `m05_evals_demo.py`, 08 is `rag.py`, 09 is `eval_trace.py` + `kql/`, **10 is `m10_tools_repl.py` (interactive tool-schema REPL) + `function_calling.py`**, and **11 is `m11_multi_agent.py` (HandoffBuilder routing) + `m11_approval_flow.py` (approval gates) + `kql/`**. Several instructor demos ship a paired `mNN_*_tour.ipynb` student notebook and a `seed_index.py`-style one-time setup script where the demo reads a persistent resource. `fixes-to-make.md` (repo root) tracks which lessons still need demos.
 - `lesson-demo-apps/` -- larger standalone demo applications, each with its own toolchain and README:
   - `woodgrove-bank/` -- the most complete: Node demos for document intelligence, image analysis, AI Search + Document Intelligence, and a groundedness API.
   - `tim-chat-front-end/` -- full app with `frontend/`, `backend/`, and `infra/` (azd-deployable via `azure.yaml`).
@@ -67,6 +67,8 @@ uv run python m03_ops_demo.py --dry-run  # list what it would read; make no Azur
 uv run python m03_ops_demo.py --only cost  # run a single signal (where the script supports --only)
 uvx juv run m03_ops_tour.ipynb           # launch the student notebook (uv builds env + kernel)
 ```
+
+Need the Azure environment itself? `infra/ai103-lesson-env.bicep` rebuilds a whole lesson env (account + project + model + optional App Insights) in one command, and its outputs map 1:1 onto the lesson `.env`. **Read `infra/README.md` before deploying** -- it carries the gotchas, notably that deleting a Foundry account leaves it soft-deleted and you must **purge** it to release the name and quota.
 
 Node demo apps (run from the app folder, e.g. `lesson-demo-apps/woodgrove-bank/`):
 

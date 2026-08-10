@@ -133,7 +133,7 @@ def main() -> int:
 
     print(f"\n[traffic] {ok} succeeded, {fail} failed.")
     print("[traffic] Allow 1-3 minutes for App Insights ingestion, then run the")
-    print("          Lesson 11 queries against appi-ai103-agents > Logs.")
+    print("          Lesson 11 queries against your Application Insights resource > Logs.")
     return 0
 
 

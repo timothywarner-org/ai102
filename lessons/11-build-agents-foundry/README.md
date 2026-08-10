@@ -25,6 +25,19 @@ az login                 # keyless auth (AzureCliCredential)
 cp .env.example .env     # then fill in your Foundry + App Insights values
 ```
 
+Need the environment itself? `infra/ai103-lesson-env.bicep` builds the whole thing (Foundry account + project + model + Application Insights) in one command, and its outputs map 1:1 onto the `.env` values above. See `infra/README.md`.
+
+### What is in this folder
+
+| File | What it is |
+| --- | --- |
+| `m11_multi_agent.py` | Headline demo: orchestrated hand-off, traced (LO4 + LO6) |
+| `m11_approval_flow.py` | Human-in-the-loop approval gates (LO5) |
+| `generate_traffic.py` | Optional telemetry padding. Needs a portal-provisioned agent (see below) |
+| `kql/` | Three ready-to-paste Application Insights queries |
+| `Warner.AI-103.Lesson-11-demo-runbook.md` | The SAY/DO/PAUSE recording runbook |
+| `orchestration-diagram.md` | Mermaid diagrams for the deck: pattern selection, the handoff mesh, the approval gate, trace correlation |
+
 ### `m11_multi_agent.py` -- the headline demo
 
 An orchestrated **multi-agent hand-off**, traced end to end. It covers objective 4 (orchestrated multi-agent solutions) and objective 6 (monitoring and error analysis) in one run.
@@ -47,6 +60,8 @@ Three specialists behind one front door, built with `HandoffBuilder`:
          |
          +--> [support]  tools: check_service_health
 ```
+
+That diagram is the **routing** view: who ends up answering. Mechanically, `HandoffBuilder` wires the participants as a **mesh with no central orchestrator** -- each agent decides its own next hop, and participants broadcast their responses so every agent keeps a consistent conversation history. There is no coordinator that control returns to. (That is also the difference from **agent-as-tools**, where a primary agent delegates a subtask and control comes back to it. In a hand-off the receiving agent takes full ownership of the task.) See `orchestration-diagram.md` for the side-by-side.
 
 The agents are **in-process objects**, so there is no agent card to publish and nothing to provision in the portal before this runs. Each run prints the routing decision as it happens:
 
@@ -122,13 +137,15 @@ Ready-to-paste queries are in `kql/`:
 
 Allow 1-3 minutes for ingestion after a run, then paste a query into **Application Insights -> Logs**.
 
-### `generate_traffic.py`
+### `generate_traffic.py` -- optional, needs extra setup
 
-Adds telemetry volume against a portal-provisioned prompt agent, so the KPI and error queries have more than one agent shape to report on.
+Adds telemetry volume against a **portal-provisioned prompt agent**, so the KPI and error queries have more than one agent shape to report on.
 
 ```bash
 uv run python generate_traffic.py --rounds 3
 ```
+
+> **Not part of the recorded demo, and it won't run out of the box.** Unlike the two demos above, this one does **not** create its agent in code. It calls an agent that must already exist in the Foundry portal, referenced by `TRAFFIC_AGENT` in `.env` (default `l10-support-agent`). Against a freshly rebuilt environment that agent isn't there, and every round fails with `404 ... Agent <name> ... not found`. Create a prompt agent of that name in the portal first, or skip this script -- the KQL queries all work off `m11_multi_agent.py` alone.
 
 ---
 Part of the [AI-103 course repository](https://github.com/timothywarner-org/ai103) by Tim Warner.
