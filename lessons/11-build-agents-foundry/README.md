@@ -15,6 +15,14 @@ Quoted verbatim from the AI-103 objective domain:
 5. Build autonomous or semiautonomous workflows with safeguards and approval flow controls
 6. Integrate monitoring into deployed agents, evaluate agent behavior, and perform error analysis
 
+**L10 and L11 split that list.** L10 owns objectives 1-3 (tool schemas, function calling, conversation memory, tool integration). **L11 demos objectives 4, 5, and 6:**
+
+| Objective | Demo | The question it answers |
+| --- | --- | --- |
+| **4** orchestrated multi-agent | `m11_multi_agent.py` | *Which* agent should handle this request? |
+| **5** safeguards and approval flow | `m11_approval_flow.py` | Should this action be allowed to happen *at all*? |
+| **6** monitoring and error analysis | `kql/` + tracing in both demos | What actually happened, across all the agents? |
+
 ## Demos
 
 Run demos directly from this folder. Python demos use **uv**, and authentication is **keyless** through `az login`.
@@ -36,7 +44,7 @@ Need the environment itself? `infra/ai103-lesson-env.bicep` builds the whole thi
 | `generate_traffic.py` | Optional telemetry padding. Needs a portal-provisioned agent (see below) |
 | `kql/` | Three ready-to-paste Application Insights queries |
 | `Warner.AI-103.Lesson-11-demo-runbook.md` | The SAY/DO/PAUSE recording runbook |
-| `orchestration-diagram.md` | Mermaid diagrams for the deck: pattern selection, the handoff mesh, the approval gate, trace correlation |
+| `orchestration-diagram.md` | Deck-authoring companion. The same diagrams inlined below, **plus** a pick-the-pattern decision chart covering all five built-in orchestrations, with the MS Learn source links |
 
 ### `m11_multi_agent.py` -- the headline demo
 
@@ -48,20 +56,74 @@ uv run python m11_multi_agent.py --dry-run    # show topology, make no Azure cal
 uv run python m11_multi_agent.py --no-trace   # run the hand-off, skip telemetry
 ```
 
-Three specialists behind one front door, built with `HandoffBuilder`:
+Three specialists behind one front door, built with `HandoffBuilder`. Solid arrows carry the conversation; dashed arrows are model calls:
 
-```text
-      customer
-         |
-         v
-      [triage]  -- reads the request, routes, answers nothing itself
-         |
-         +--> [billing]  tools: lookup_invoice
-         |
-         +--> [support]  tools: check_service_health
+```mermaid
+flowchart LR
+    CUST(["Customer<br/>request"])
+
+    subgraph WF["HandoffBuilder workflow (in-process objects)"]
+        direction TB
+        TRIAGE["triage<br/><small>start agent: routes only,<br/>answers nothing itself</small>"]
+        BILLING["billing<br/><small>tool: lookup_invoice</small>"]
+        SUPPORT["support<br/><small>tool: check_service_health</small>"]
+    end
+
+    MODEL[("Foundry<br/>gpt-5-mini<br/><small>proj-agents</small>")]
+    ANS(["Answer"])
+
+    CUST -->|"workflow.run(question)"| TRIAGE
+    TRIAGE -->|"handoff_sent<br/>money question"| BILLING
+    TRIAGE -->|"handoff_sent<br/>outage report"| SUPPORT
+    BILLING -->|"output event"| ANS
+    SUPPORT -->|"output event"| ANS
+
+    TRIAGE -.->|"AzureCliCredential (keyless)"| MODEL
+    BILLING -.-> MODEL
+    SUPPORT -.-> MODEL
 ```
 
-That diagram is the **routing** view: who ends up answering. Mechanically, `HandoffBuilder` wires the participants as a **mesh with no central orchestrator** -- each agent decides its own next hop, and participants broadcast their responses so every agent keeps a consistent conversation history. There is no coordinator that control returns to. (That is also the difference from **agent-as-tools**, where a primary agent delegates a subtask and control comes back to it. In a hand-off the receiving agent takes full ownership of the task.) See `orchestration-diagram.md` for the side-by-side.
+#### Routing view vs. actual topology
+
+The diagram above is the **routing** view: who ends up answering. It isn't the wiring.
+
+Mechanically, `HandoffBuilder` connects the participants as a **mesh with no central orchestrator**. Each agent decides its own next hop, and participants broadcast their responses so every agent keeps a consistent conversation history. There is no coordinator that control returns to:
+
+```mermaid
+flowchart TB
+    subgraph WRONG["What most people picture"]
+        direction TB
+        O(["central<br/>orchestrator"])
+        A1["agent A"]
+        A2["agent B"]
+        A3["agent C"]
+        O -->|"dispatch"| A1
+        O -->|"dispatch"| A2
+        O -->|"dispatch"| A3
+        A1 -->|"return"| O
+        A2 -->|"return"| O
+        A3 -->|"return"| O
+    end
+
+    subgraph RIGHT["How Handoff actually works"]
+        direction TB
+        B1["triage"]
+        B2["billing"]
+        B3["support"]
+        B1 <-->|"broadcast context"| B2
+        B2 <-->|"broadcast context"| B3
+        B1 <-->|"broadcast context"| B3
+    end
+
+    WRONG ~~~ RIGHT
+```
+
+Two consequences that are genuinely exam-relevant:
+
+- **No central authority.** Adding a fourth specialist means adding one participant, not editing a routing table that grows forever.
+- **Handoff tool calls are filtered out** of the history before the next agent sees them, so internal workflow mechanics never confuse the model. Only user and agent messages sync.
+
+This is also the difference from **agent-as-tools**: there, a primary agent delegates a subtask and control *returns* to it, so the primary keeps ownership. In a hand-off the receiving agent takes **full ownership** of the task and the conversation goes with it.
 
 The agents are **in-process objects**, so there is no agent card to publish and nothing to provision in the portal before this runs. Each run prints the routing decision as it happens:
 
@@ -74,7 +136,7 @@ The agents are **in-process objects**, so there is no agent card to publish and 
   answer: Our monitoring shows the Contoso portal is currently degraded...
 ```
 
-Three scenarios run in order: a billing question, a support question, and a deliberate miss (an invoice ID that does not exist) so the error-analysis query has something real to classify.
+Three scenarios run in order: a billing question, a support question, and a deliberate miss (an invoice ID that doesn't exist) so the error-analysis query has something real to classify.
 
 Two implementation details worth calling out on camera, because both are easy to get wrong:
 
@@ -101,9 +163,35 @@ happen at all*. The answer is one parameter on the tool, and the tools are risk-
 
 The framework halts **before** the function body executes and returns a
 `function_approval_request` instead of a result. Your code answers with
-`request.to_function_approval_response(approved)` and the run resumes from the pause. That
-placement is the whole point: a safeguard in the system prompt is a suggestion the model can
-reason its way around, while a gate on the executor is a control it cannot reach past.
+`request.to_function_approval_response(approved)` and the run resumes from the pause:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Human
+    participant Agent as billing agent
+    participant FW as executor
+    participant Tool as refund_invoice()
+
+    Human->>Agent: "Refund invoice INV-81 in full"
+    Agent->>FW: requests refund_invoice(INV-81, 99.0)
+    Note over FW,Tool: approval_mode="always_require"<br/>function body NOT yet reached
+    FW-->>Human: function_approval_request<br/>(tool name + arguments)
+
+    alt Approved
+        Human->>FW: to_function_approval_response(True)
+        FW->>Tool: execute
+        Tool-->>Agent: status = refunded
+        Agent-->>Human: "Refunded $99.00, confirmation RF-INV-81"
+    else Denied
+        Human->>FW: to_function_approval_response(False)
+        Note over Tool: never executes
+        Agent-->>Human: "The refund could not be processed"
+    end
+```
+
+That placement is the whole point: a safeguard in the system prompt is a suggestion the model can
+reason its way around, while a gate on the executor is a control it can't reach past.
 
 Three scenarios run in order, and the first two are the contrast worth pausing on. The same
 request, from the same agent, on the same model produces `status: refunded` when approved and
@@ -123,9 +211,33 @@ the model correctly refuses to call the refund tool at all and the gate never fi
 
 ### Observability
 
-The demo wires OpenTelemetry to Application Insights with `configure_azure_monitor`, so one run emits `invoke_agent`, `execute_tool`, and `executor.process` spans. Every agent in a single hand-off shares one `operation_Id`, which is what makes the multi-agent query able to follow a request across three agents.
+The demo wires OpenTelemetry to Application Insights with `configure_azure_monitor`, so one run emits `invoke_agent`, `execute_tool`, and `executor.process` spans. Every agent in a single hand-off shares one `operation_Id`, which is what makes the multi-agent query able to follow a request across three agents:
+
+```mermaid
+flowchart LR
+    subgraph RUN["One customer request = one operation_Id"]
+        direction TB
+        W["workflow.run"]
+        T["executor.process<br/><small>triage</small>"]
+        B["executor.process<br/><small>billing</small>"]
+        X["execute_tool<br/><small>lookup_invoice</small>"]
+        I["invoke_agent<br/><small>chat completion</small>"]
+        W --> T --> B --> X
+        B --> I
+    end
+
+    AI[("Application Insights<br/>appi-ai103-l11")]
+    RESULT["agents: triage, billing, support<br/>tools: lookup_invoice<br/>spans: 10 &nbsp; total_ms: 18381"]
+
+    RUN -->|"OpenTelemetry via<br/>configure_azure_monitor"| AI
+    AI -->|"kql/02-multi-agent-handoff.kql"| RESULT
+```
+
+Those result values are from a real verified run, not an illustration.
 
 Set `APPLICATIONINSIGHTS_CONNECTION_STRING` in `.env` to turn tracing on. Leave it unset and the hand-off still runs, reporting that tracing is off.
+
+If `02-multi-agent-handoff.kql` returns **nothing**, that isn't an empty result, it's a diagnosis: distributed tracing isn't wired up correctly. When it returns rows, your multi-agent telemetry is genuinely correct.
 
 Ready-to-paste queries are in `kql/`:
 
