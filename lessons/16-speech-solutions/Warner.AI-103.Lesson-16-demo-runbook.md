@@ -52,15 +52,17 @@ Foundry portal -> **Speech playground** -> **Voice live** -> pick a scenario and
 uv run python m16_voice_live.py --pipeline
 ```
 
-`CHECK` `hops 3` and `round trip 22.5s`
-`CHECK` the split: `stt 5.5s + model 15.2s + tts 1.8s`
+`CHECK` `hops 3` and `round trip` in the **17-23s** range
+`CHECK` the split, e.g. `stt 5.5s + model 9.4s + tts 2.0s`
 `CHECK` `HEARD Hi, this is Marcus Webb, order number 4471...`
+
+> **The model leg is the variable one** (observed 9-15s across runs); stt and tts are steady at ~5.5s and ~2s. Read whatever is on screen. The ratio against Voice Live stays 3x or better either way, which is the only number the beat depends on.
 
 ```powershell
 uv run python m16_voice_live.py
 ```
 
-`CHECK` `hops 1` and `round trip 6.6s`
+`CHECK` `hops 1` and `round trip` in the **5-7s** range
 `CHECK` `REPLY Hi Marcus, I can hear you're frustrated...`
 
 `SHOW` both WAVs in `out/` -- play them back to back

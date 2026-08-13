@@ -63,13 +63,15 @@ identically with a live mic; the file is a recording-safety decision.
 
 Verified live 2026-08-13 against `aif-ai103-l11-gcn5uizgywfac`:
 
-| Path | Hops | Round trip | Reply |
+| Path | Hops | Round trip (observed range) | Reply |
 | --- | --- | --- | --- |
-| Voice Live | 1 | **6.6s** | "Hi Marcus, I can hear you're frustrated..." |
-| Pipeline | 3 | **22.5s** | "You sound really frustrated after being put on hold..." |
+| Voice Live | 1 | **5-7s** | "Hi Marcus, I can hear you're frustrated..." |
+| Pipeline | 3 | **17-23s** | "You sound really frustrated after being put on hold..." |
 
-The transcripts are nearly identical. The latency is 3.4x apart, and only one of
-those replies came from a model that actually heard the caller.
+The transcripts are nearly identical. The latency is 3x or more apart, and only
+one of those replies came from a model that actually heard the caller. The
+pipeline's model leg is the variable part (9-15s across runs); stt and tts hold
+steady at roughly 5.5s and 2s.
 
 The Spanish fixture needs **no configuration change** at all: Voice Live detects
 the language and answers in it, which is LO4 without a separate translation call.
