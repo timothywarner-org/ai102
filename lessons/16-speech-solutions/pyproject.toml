@@ -7,19 +7,23 @@ requires-python = ">=3.10"
 authors = [{ name = "Tim Warner" }]
 
 dependencies = [
-    # Voice Live: speech in, speech out, one WebSocket. The [aiohttp] extra is
-    # REQUIRED -- the async transport imports aiohttp at module load and raises
-    # a confusing ImportError without it.
-    "azure-ai-voicelive[aiohttp]>=1.3.0",
-    # Batch STT/TTS for the pipeline comparison beat. This is the SDK the
-    # "do it yourself" path uses, and showing both is the lesson.
-    "azure-cognitiveservices-speech>=1.40.0",
-    # AzureCliCredential. Keyless everywhere; there is no API key in this lesson.
+    # Chat completions, including the input_audio content part in Beat 3.
+    # Plain OpenAI client, NOT AzureOpenAI: AzureOpenAI appends an api-version
+    # query parameter and the /v1 path rejects it.
+    "openai>=1.68.0",
+    # AzureCliCredential. Keyless everywhere; no API key in this lesson.
     "azure-identity>=1.19.0",
     # load_dotenv(override=True), so a stale shell var cannot shadow .env
-    "openai>=3.0.0",
-    "python-dotenv>=1.0.1",
+    "python-dotenv>=1.2.0",
+    "azure-cognitiveservices-speech>=1.51.1",
 ]
+
+# NOT HERE: azure-cognitiveservices-speech (the Speech SDK).
+# The SDK is the right call for production -- it streams, it raises events, it
+# handles reconnects. These scripts use the REST surface with urllib because the
+# REQUEST SHAPE is the lesson: the composite aad# token, the SSML body, the
+# X-Microsoft-OutputFormat header, and the Phrase-List header are all things the
+# exam expects you to recognize. The SDK hides every one of them.
 
 [project.optional-dependencies]
 dev = ["ruff>=0.6.0"]

@@ -13,87 +13,99 @@ Quoted verbatim from the AI-103 objective domain:
 
 ## The idea
 
-You can assemble a voice agent out of three services, or you can call one that
-already is one. Both work. They fail differently, they bill differently, and
-one of them hears your customer while the other reads a transcription of them.
+Text out as audio, audio back as text, and a decision in the middle about how
+much of the loop you assemble yourself. Then the question this lesson actually
+turns on: **what did the transcript throw away, and did you need it?**
 
-- **Pipeline** (speech to text, then a model, then text to speech) when you need
-  to inspect or correct at every stage, or you have a requirement the managed
-  path can't meet.
-- **Voice Live** when you want a conversation. One WebSocket, no audio model to
-  deploy, and the interruption and end-of-turn handling comes with it.
-
-The demo runs the same call both ways so you can watch the difference instead of
-taking my word for it.
+**No microphone required.** Beat 2 synthesizes its own fixture with text to
+speech, and every later beat reuses that WAV. Takes are byte-identical.
 
 ## Setup
-
-**No new Azure resources.** Speech and Voice Live both ride the Foundry account
-this course already uses.
 
 ```bash
 az login
 cd lessons/16-speech-solutions
 uv sync
-cp .env.example .env                        # fill in the values
-uv run python assets/make_assets.py         # synthesize the caller audio
+cp .env.example .env        # fill in every value, then: pwsh -File validate.ps1
 ```
 
-**There is no virtual environment to activate.** `uv run` resolves it from any
-shell, and `uv sync` is the only setup step (safe to re-run).
+`.env.example` is the authority on which variables are required. The four beats
+need six of them; the rest belong to `m16_voice_live.py`, which is not part of
+this demo.
 
 Everything is **keyless**. `AzureCliCredential`, never `DefaultAzureCredential`.
 
-## Demos
+### Speech auth is a different shape
 
-Beat 1 runs in the Foundry Speech playground with no code. Beats 2 and 3 are scripts.
+Speech over Microsoft Entra does not take a plain bearer token:
 
-```bash
-uv run python m16_voice_live.py --dry-run             # show the call shapes, no network
-uv run python m16_voice_live.py                       # Voice Live, one hop
-uv run python m16_voice_live.py --pipeline            # stt -> model -> tts, three hops
-uv run python m16_voice_live.py --audio assets/caller-es.wav   # same code, Spanish
+```
+Authorization: Bearer aad#<SPEECH_RESOURCE_ID>#<ENTRA_ACCESS_TOKEN>
 ```
 
-**No microphone.** The caller audio is a WAV file and the reply is written to
-`out/`, so a retake is a replay rather than a performance. Everything here works
-identically with a live mic; the file is a recording-safety decision.
+The `aad#` prefix and the `#` separator are both required. A plain token returns
+a 401 that reads like an expired credential.
 
-## What you should see
+### Beat 3 needs an audio deployment
 
-Verified live 2026-08-13 against `aif-ai103-l11-gcn5uizgywfac`:
+Path B reasons over audio and needs a model that accepts `input_audio` on
+`/chat/completions`. If `AUDIO_MODEL` is blank the script runs Path A alone and
+prints the exact `az` command to deploy one. Half the beat still lands.
 
-| Path | Hops | Round trip (observed range) | Reply |
-| --- | --- | --- | --- |
-| Voice Live | 1 | **5-7s** | "Hi Marcus, I can hear you're frustrated..." |
-| Pipeline | 3 | **17-23s** | "You sound really frustrated after being put on hold..." |
+## Demos
 
-The transcripts are nearly identical. The latency is 3x or more apart, and only
-one of those replies came from a model that actually heard the caller. The
-pipeline's model leg is the variable part (9-15s across runs); stt and tts hold
-steady at roughly 5.5s and 2s.
+Beat 1 runs in the Foundry portal with no code.
 
-The Spanish fixture needs **no configuration change** at all: Voice Live detects
-the language and answers in it, which is LO4 without a separate translation call.
+```bash
+uv run python m16_speech.py --dry-run
+uv run python m16_speech.py                     # synth -> transcribe -> phrase list
+uv run python m16_speech.py --no-phrase-list    # leave the product name broken
+
+uv run python m16_audio_reason.py               # transcript vs audio, same question
+uv run python m16_translate_speech.py           # speech translation vs a model
+```
+
+Results are cached by content hash, so retakes replay instantly and identically.
+`--no-cache` forces live calls, `--clean` starts cold.
+
+## Status
+
+**Verified live.** All four beats ran green against `aif-ai103-l11-gcn5uizgywfac`
+in `eastus2` on 2026-08-13. Every result quoted in the demo runbook is a real
+string from that run, captured in `validation-output.txt`.
+
+Re-prove it any time:
+
+```powershell
+pwsh -File validate.ps1
+```
+
+That runs everything cold, then warm, and leaves the cache primed so your first
+take is a warm one.
+
+`offline_harness.py` is a separate, weaker check: **18 pure-function assertions,
+no network**. It validates SSML shape, token composition, scorecard maths, and
+cache behavior. It proves nothing about Azure, and it says so when it runs. An
+earlier version asserted HTTP request shapes and passed while three beats were
+broken, which is why it no longer touches the transport layer. `validate.ps1` is
+the only thing that proves anything.
 
 ## Files
 
-| File | Purpose |
-| --- | --- |
-| `m16_voice_live.py` | Voice Live vs the hand-built pipeline, same call, same screen |
-| `assets/make_assets.py` | synthesizes the caller fixtures with TTS (no recording needed) |
-| `Warner.AI-103.Lesson-16-demo-runbook.md` | the recording cheatsheet |
+| File | Beat | What it owns |
+| --- | --- | --- |
+| *(Foundry portal)* | 1 | Speech playground: STT, TTS, voice picker |
+| `m16_speech.py` | 2 | TTS fixture, STT round trip, phrase list |
+| `m16_audio_reason.py` | 3 | transcript vs `input_audio`, same question |
+| `m16_translate_speech.py` | 4 | speech translation vs a model |
+| `m16_cache.py` | all | content-addressed cache, audio-safe |
+| `validate.ps1` | pre-flight | runs all four beats cold then warm; the only live proof |
+| `offline_harness.py` | pre-flight | 18 pure-function assertions, no network |
+| `m16_voice_live.py` | *(none)* | Voice Live spike, **not part of the four beats** |
 
-## Gotchas worth knowing
-
-- **Speech authenticates against `*.cognitiveservices.azure.com`**, not the
-  `services.ai.azure.com` host the model APIs use. Mixing them up produces a 401
-  that reads like a missing role assignment.
-- **Do not commit the input buffer** when server voice activity detection is on
-  (it is, by default). VAD ends the turn for you; committing on top opens a
-  second empty turn and cancels the reply you wanted.
-- **`audioop` was removed in Python 3.13.** The WAV handling here is hand-rolled
-  rather than depending on a stdlib module that no longer exists.
+`m16_voice_live.py` is a standalone exploration of the Voice Live speech-to-speech
+API. It is deliberately outside the recorded demo, is not covered by
+`validate.ps1`, and needs a microphone. Leave it closed during a take.
 
 ---
 Part of the [AI-103 course repository](https://github.com/timothywarner-org/ai103) by Tim Warner.

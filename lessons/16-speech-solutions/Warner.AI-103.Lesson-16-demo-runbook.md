@@ -1,146 +1,169 @@
-# L16 CHEATSHEET -- One WebSocket vs Three Services
+# L16 RECORDING CARD -- Speech, a Voice Agent, and Two Routes Out
 
-`lessons/16-speech-solutions/` | **3 beats, 4 commands** | ~12 min
+**3 beats, 2 commands, ~15 min** | folder: `lessons/16-speech-solutions/`
 
-**Verified green 2026-08-13** against `aif-ai103-l11-gcn5uizgywfac`. Every `CHECK` is a real observed string. Beat 1 is portal-only.
+> **Camtasia:** turn **System Audio** ON in the recorder (next to Microphone).
+> It defaults to OFF and fails silently. Do one 5-second test before Beat 1.
+>
+> **Everything below is verified live.** Every `CHECK` is a real string.
+> Cache is primed — both commands replay in ~1-3s.
 
-**No microphone anywhere.** Caller audio is a WAV; replies land in `out/`. Retake = replay.
+**Voice alignment — use `Aria` everywhere.** The portal, the agent, and the
+scripts all speak `en-US-AriaNeural`. Same voice start to finish.
 
-**Legend:** `SHOW` on screen | `SAY` riff it | `CHECK` proof | `FIX` if it blows up
+**Model picks:** Voice Live -> **`gpt-realtime`** (managed, nothing to deploy).
+Reasoning -> `gpt-5.1`. Both already configured.
 
 ---
 
-## PRE-FLIGHT (off camera)
+## PRE-FLIGHT
+
+- [ ] `az login` -> `tim@techtrainertim.com`
+- [ ] `pwsh -File validate.ps1` -> green, cache primed
+- [ ] Camtasia **System Audio ON**, levels tested
+- [ ] Edge on Foundry portal (`proj-agents`) | VS Code on the lesson folder
+
+---
+
+## 1 · Portal — hear it before you code it (5 min)
+
+### 1a. Speech playground (2 min)
+
+`SHOW` Foundry portal -> **Speech playground**
+
+`DO` type a sentence -> **Aria** -> listen -> switch voice -> listen
+
+`SAY`
+
+- Two directions, and you can hear both before writing a line.
+- Text in, audio out. Audio in, text out.
+- No model deployed, no endpoint, no code. Speech rides the Foundry resource you already have.
+
+### 1b. Voice Live on an agent (3 min) — **the beat that matters**
+
+`SHOW` **proj-agents** -> your agent -> **Voice Live**
+
+`DO` pick **`gpt-realtime`**, voice **Aria**, start talking to it
+
+`SAY`
+
+- This is the same agent you built earlier in the course. I have not changed it. I gave it **ears and a voice**.
+- Watch what I did *not* do: no speech-to-text call, no text-to-speech call, no orchestration between them. **Voice Live is fully managed** — speech in, speech out, one connection.
+- Note the interruption. I can talk over it and it stops. That is not something you get by chaining STT to a model to TTS; you would be waiting for a full turn every time.
+- **This is the exam's answer for "voice agent."** If a stem describes a real-time spoken conversation with barge-in, the answer is Voice Live — not a pipeline you assemble yourself.
+
+`SAY` handoff
+
+- Managed is the right default. Now let us go under it, because when the base model gets a word wrong, you need to know which layer to fix.
+
+`FIX` Voice Live won't connect -> check mic permission in Edge first, then the agent's model. `--` Keep talking; do not debug on camera.
+
+---
+
+## 2 · The break, and the runtime grammar that fixes it (5 min)
+
+`SHOW` `m16_speech.py` -> the `SCRIPT` and `TERMS` constants
+
+`SAY` "ShipSense Pro" is in no base model's vocabulary. Watch it come apart.
 
 ```powershell
-az login
-uv sync
-uv run python assets/make_assets.py
-uv run python m16_voice_live.py --dry-run
+uv run python m16_speech.py --no-phrase-list
 ```
 
-- [ ] Two WAVs in `assets/` (caller-en, caller-es)
-- [ ] Dry-run prints the wss endpoint and `caller-en.wav  ok`
-- [ ] **Run both live commands once** so the first take isn't the first call
-- [ ] Windows: Edge on Foundry portal | VS Code on the lesson folder | `out/` visible in Explorer
+`CHECK` transcript reads **"The Ship Sense Pro dashboard"** — one brand, two words
+`CHECK` **2/3 terms intact -> ['Northwind Logistics', 'Dana']**
 
----
-
-## 1 · Beat 1 -- Talk to it in the portal (3 min)
-
-Foundry portal -> **Speech playground** -> **Voice live** -> pick a scenario and voice -> **Start**
-
-`DO` have an actual conversation. Interrupt it mid-sentence.
-
-`CHECK` it stops talking when you cut in and picks up your new thread
-
-### Talk track
-
-- **Interrupt it on purpose.** That's the whole demo. It stops, listens, and recovers, and none of that is code you wrote.
-- **Proactive engagement toggle** makes the agent speak first. Worth flipping so they see it's a configuration decision, not a coding one.
-- **Nothing was deployed to get here.** No audio model, no endpoint. Say that out loud, because the next beat is about what you'd have built instead.
-
-`FIX` playground won't load -> you need **Cognitive Services User** on the account plus a project. Owner is control plane, doesn't count.
-
----
-
-## 2 · Beat 2 -- The same call, two architectures (6 min)
-
-`SHOW` `assets/make_assets.py` briefly -- the caller audio is **synthesized from a script**, not recorded, so it's reviewable and identical on every machine.
+`DO` **play `out/caller.wav`** — the room hears the source was clean
 
 ```powershell
-uv run python m16_voice_live.py --pipeline
+uv run python m16_speech.py
 ```
 
-`CHECK` `hops 3` and `round trip` in the **17-23s** range
-`CHECK` the split, e.g. `stt 5.5s + model 9.4s + tts 2.0s`
-`CHECK` `HEARD Hi, this is Marcus Webb, order number 4471...`
+`CHECK` **3/3 terms intact**
 
-> **The model leg is the variable one** (observed 9-15s across runs); stt and tts are steady at ~5.5s and ~2s. Read whatever is on screen. The ratio against Voice Live stays 3x or better either way, which is the only number the beat depends on.
+`SHOW` `transcribe()` -> `PhraseListGrammar.from_recognizer(recognizer)`
 
-```powershell
-uv run python m16_voice_live.py
-```
+`SAY` the landing
 
-`CHECK` `hops 1` and `round trip` in the **5-7s** range
-`CHECK` `REPLY Hi Marcus, I can hear you're frustrated...`
+- A phrase list is **not a header and not a query parameter.** It is a runtime grammar attached to a live recognizer. That is why this uses the SDK.
+- Available on **real-time recognition, fast transcription, and Voice Live** — **not** batch transcription.
+- `setWeight` runs 0.0 to 2.0. Zero disables, two is maximum bias.
+- **Custom speech training** is the heavy tool: broad vocabulary, permanent, minutes for text and days for audio. Reaching for training when a phrase list would do is the classic overspend on this exam.
 
-`SHOW` both WAVs in `out/` -- play them back to back
+`SHOW` `speech_token()`
 
-### Talk track
+`SAY`
 
-- **Read the split out loud.** Three hops, and each one is a service you're operating, monitoring, and paying for separately.
-- **Now the part that matters.** Compare the two replies. The pipeline says "you sound frustrated" because gpt-5-mini inferred it from *words on a page*. Voice Live says "I can hear you're frustrated" because it got the audio. Same customer, same complaint, and one of those models actually heard him.
-- **The transcript is nearly identical.** That's the trap. If you only ever look at transcripts, these two architectures look equivalent, and they are not.
-- **3.4x on latency**, and this is a file. On a live call that gap is the difference between a conversation and an interrogation.
+- Speech has **two surfaces, two token shapes.** Regional endpoints want `aad#`, resource id, `#`, token. The account endpoint takes a plain bearer.
+- Miss the prefix and you get a 401 that reads exactly like an expired credential.
 
-`SHOW` the comment block at the audio-buffer loop in `m16_voice_live.py`
-
-- **Do not commit the buffer.** Server VAD is on by default and ends the turn for you. Commit on top of it and you open a second empty turn that cancels the reply you wanted -- you get an empty response and a suspiciously fast round trip. I hit this exact bug building the demo.
-
-`FIX` 401 -> you're pointed at `services.ai.azure.com`. Speech wants `*.cognitiveservices.azure.com`. Reads like a missing role, isn't.
+`FIX` `401` -> token shape. `403` -> **Cognitive Services User** on the account.
 
 ---
 
-## 3 · Beat 3 -- Same code, different language (3 min)
+## 3 · Two routes out, and where to fix a bad word (4 min)
 
 ```powershell
-uv run python m16_voice_live.py --audio assets/caller-es.wav
+uv run python m16_translate_speech.py
 ```
 
-`CHECK` `HEARD Hola, soy Marcus Webb. pedido 4471...`
-`CHECK` `REPLY Parece que estás un poco frustrado, Marcos...`
+`CHECK` Route 1a French: **"Le tableau de bord Ship Sense Pro"** — break rides through
+`CHECK` Route 1a **1/2 names intact**, Route 1b **2/2**
+`CHECK` Routes 1a/1b print **register: INFORMAL (tu / du)**
+`CHECK` Route 2 prints **register: FORMAL (vous / Sie)**
 
-### Talk track
+`SAY` the cascade
 
-- **I changed one argument.** No translation call, no language parameter, no second pipeline. It detected Spanish and answered in Spanish.
-- **That's the LO4 answer for a live conversation.** When the requirement is a phone call, this is it.
-- **When it is NOT the answer:** pre-recorded media. That's video translation, a separate feature that dubs and subtitles in one pass and can keep the original speaker's voice. Different tool, different job.
-- **And name the cost model**, because it's an easy exam mark: real-time speech translation covers two target languages, and every language past the second bills as additional text translation.
+- Route one: audio in, translated text out, one call. And there is the recognition error, riding into **both** languages verbatim. One bad token upstream, a branding error in every market at once, and nothing flagged it.
 
----
+`SAY` the upstream fix
 
-## 4 · Close (30 s)
+- Same one call. The phrase list biased **recognition**, which sits upstream of translation. The fix propagates for free and repairs the transcript too. **Fix terminology as far upstream as you can.**
 
-1. **Voice Live is the default now.** Hand-orchestration is the exception you justify.
-2. **Audio carries what text drops.** Reason from the audio when how they said it is the thing you need.
-3. **Customization is a ladder.** Phrase list, custom language model, custom acoustic model, custom voice. Climb only as far as your accuracy problem requires.
+`SAY` the register discovery — **slow down here, this is the best moment**
 
-"I hope you found this lesson helpful. I'll see you next time."
+- Now the address form. Azure Translator chose **informal** on its own. "Quand tu as un moment." "Wann immer du einen Moment hast." To a business customer.
+- No glossary fixes that. **It is not a terminology problem.**
+- Route two: **"vous."** **"Sie."** I never said the word formal — I asked it to hold the register and it worked out that a business caller warrants formal address. It also caught that Dana is a woman: **"je suis sûre"**, where Translator wrote "je suis sûr."
+
+`SAY` the close
+
+1. **Voice Live is the managed answer for a voice agent.** Speech in, speech out, interruptible.
+2. **A phrase list is a runtime grammar, not a header.** Training is the heavier tool.
+3. **Fix bad terms upstream; buy judgment downstream.** Register and tone are what the extra hop actually buys.
+
+`SAY` I hope you found this lesson helpful. I will see you next time.
 
 ---
 
 ## PANIC TABLE
 
-| Symptom | Real cause | Fix |
-| --- | --- | --- |
-| `401` on Speech | pointed at `services.ai.azure.com` | use `*.cognitiveservices.azure.com` (`SPEECH_ENDPOINT`) |
-| Voice Live returns empty, ~1.6s | buffer committed on top of server VAD | don't call `commit()` / `response.create()` |
-| Playground won't load | no project, or missing data-plane role | **Cognitive Services User** + a Foundry project |
-| `ModuleNotFoundError: audioop` | Python 3.13+ removed it | already hand-rolled here; don't reintroduce it |
-| WAV missing | fixtures not generated | `uv run python assets/make_assets.py` |
-| Reply wording differs between takes | models aren't deterministic | expected; the latency contrast is the point, not the wording |
+| Symptom | Fix on camera |
+| --- | --- |
+| Voice Live silent | Edge mic permission, then agent model. Keep talking. |
+| No audio in Camtasia | System Audio was off. You cannot fix it in post — re-record the beat. |
+| `401` Speech | token shape: `aad#<resourceId>#<token>` |
+| `403` Speech | **Cognitive Services User** on the account |
+| Beat 3 canceled | `--model-only` keeps it moving |
+| `caller.wav` missing | run `uv run python m16_speech.py` first |
 
 ## DO NOT
 
-- Do not use a live microphone on camera. The file path is deterministic and Camtasia only has to capture the screen.
-- Do not deploy an audio model "for Voice Live." It is fully managed and deploys nothing.
-- Do not claim the pipeline is legacy. It's the right call when you need to inspect or correct mid-stream.
-- Do not activate or deactivate a venv on camera. `uv run` handles it.
-
-## FILE MAP
-
-| File | Beat | Owns |
-| --- | --- | --- |
-| *(portal)* | 1 | Voice Live playground, interruption, proactive engagement |
-| `m16_voice_live.py` | 2, 3 | Voice Live vs pipeline; language handling |
-| `assets/make_assets.py` | pre-flight | synthesizes caller fixtures, no recording needed |
+- Do not skip playing `caller.wav`. Beat 2 only lands if the room hears the source was clean.
+- Do not call a phrase list a header. It is a grammar on the recognizer.
+- Do not pass `--clean` mid-take.
 
 ## OBJECTIVE COVERAGE
 
 | LO | Where |
 | --- | --- |
-| 1 speech to text and text to speech for agentic interactions | Beat 2, both paths |
-| 2 speech as an agent modality, custom speech models | Beat 1 portal; customization ladder in the close |
-| 3 multimodal reasoning from audio inputs | Beat 2, the tone contrast |
-| 4 translate speech using language models and Foundry Tools | Beat 3 |
+| 1 speech to text and text to speech | Beat 1a playground, Beat 2 round trip |
+| 2 speech as an agent modality, custom speech models | **Beat 1b Voice Live**, Beat 2 phrase list vs training |
+| 3 multimodal reasoning from audio inputs | Beat 1b Voice Live (audio in, audio out, no transcript) |
+| 4 translate speech using language models and Foundry Tools | Beat 3, both routes |
+
+## CUT FROM CAMERA (still in the repo, still runs)
+
+`m16_audio_reason.py` — transcript-then-text-model vs `input_audio`, one call vs
+two. Worth a mention in the lecture, not worth 4 minutes here now that Voice Live
+carries the multimodal objective. Verified working if you want it as a bonus clip.
