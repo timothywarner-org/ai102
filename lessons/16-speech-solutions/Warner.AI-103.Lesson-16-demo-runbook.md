@@ -1,6 +1,6 @@
 # L16 RECORDING CARD -- Speech, a Voice Agent, and Two Routes Out
 
-**3 beats, 2 commands, ~15 min** | folder: `lessons/16-speech-solutions/`
+**3 beats, 3 commands, ~15 min** | folder: `lessons/16-speech-solutions/`
 
 > **Camtasia:** turn **System Audio** ON in the recorder (next to Microphone).
 > It defaults to OFF and fails silently. Do one 5-second test before Beat 1.
@@ -44,6 +44,9 @@ Reasoning -> `gpt-5.1`. Both already configured.
 `SHOW` **proj-agents** -> your agent -> **Voice Live**
 
 `DO` pick **`gpt-realtime`**, voice **Aria**, start talking to it
+
+`CHECK` the agent answers **out loud**, and Camtasia's meter moves on system audio
+`CHECK` you can **talk over it** and it stops mid-sentence
 
 `SAY`
 
