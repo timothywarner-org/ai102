@@ -1,0 +1,39 @@
+[project]
+name = "ai103-lesson18-extract-content-documents"
+version = "1.0.0"
+description = "AI-103 Lesson 18 demo assets - extracting content from documents with Content Understanding"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{ name = "Tim Warner" }]
+
+dependencies = [
+    # AzureCliCredential. Keyless everywhere -- no Ocp-Apim-Subscription-Key
+    # anywhere in this lesson, even though every doc sample uses one. See
+    # m18_common.py for why it is AzureCliCredential and never
+    # DefaultAzureCredential.
+    "azure-identity>=1.19.0",
+    # load_dotenv(override=True), so a stale shell variable cannot shadow .env.
+    "python-dotenv>=1.2.0",
+    # assets/make_assets.py renders the born-digital fee-schedule PDF that
+    # gives Beat 1 its control case. BUILD-TIME only: the PDF is committed, so
+    # a fresh clone never needs reportlab to run a beat.
+    "reportlab>=4.0.0",
+]
+
+# DELIBERATELY NOT HERE: azure-ai-contentunderstanding.
+#
+# The SDK is real, stable, and the right answer in production -- the runbook
+# says so on camera. These scripts speak REST over urllib because THE JSON IS
+# THE LESSON. Objective domain 5 tests whether you can read an analyzer
+# definition and predict what it returns: that baseAnalyzerId takes exactly
+# four values, that estimateFieldSourceAndConfidence is off until you turn it
+# on, that models.completion is mandatory the moment a fieldSchema appears,
+# that method is extract | classify | generate. Every one of those is a shape
+# you can see in this repo and cannot see through a typed client.
+#
+# Second reason: no dependency here can drift out from under the lesson,
+# because urllib ships with Python. A course that records once and sells for
+# three years cannot afford a client-library major version.
+
+[project.optional-dependencies]
+dev = ["ruff>=0.6.0"]
