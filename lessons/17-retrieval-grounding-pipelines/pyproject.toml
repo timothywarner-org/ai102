@@ -1,0 +1,44 @@
+[project]
+name = "ai103-lesson17-retrieval-grounding-pipelines"
+version = "1.0.0"
+description = "AI-103 Lesson 17 demo assets - retrieval and grounding pipelines on Azure AI Search"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{ name = "Tim Warner" }]
+
+dependencies = [
+    # AzureCliCredential. Keyless everywhere -- no admin key anywhere in this
+    # lesson. See m17_common.py for why it is AzureCliCredential specifically
+    # and never DefaultAzureCredential.
+    "azure-identity>=1.19.0",
+    # load_dotenv(override=True), so a stale shell variable cannot shadow .env.
+    "python-dotenv>=1.2.0",
+    # Staging the fixture corpus into blob storage. This is setup, not the
+    # lesson, so the SDK is the right call here -- it owns the token scope,
+    # the x-ms-version header, and the block-blob semantics.
+    "azure-storage-blob>=12.20.0",
+    # assets/make_assets.py renders the "scanned" addendum page. Pillow is a
+    # BUILD-TIME dependency for the fixture, not a runtime dependency of any
+    # beat. The PNG it produces is committed, so a fresh clone never needs it.
+    "pillow>=10.0.0",
+    # Beat 3b. Objective 5 says "agent tools" literally, so the demo builds a
+    # real Agent over FoundryChatClient and registers the knowledge base as a
+    # function tool, rather than calling chat/completions and narrating the
+    # word "agent" over it. The framework owns the tool loop; the retrieve
+    # body stays visible inside the tool, where the JSON is still the lesson.
+    "agent-framework-foundry>=1.11.0",
+]
+
+# DELIBERATELY NOT HERE: azure-search-documents.
+#
+# The SDK is the right answer in production and the runbook says so. These
+# scripts speak REST over urllib because THE JSON IS THE LESSON. The exam tests
+# whether you recognize an indexProjections block, a vectorSearch profile that
+# names an algorithm and a vectorizer, a cognitiveServices attach of type
+# AIServicesByIdentity, and an outputFieldMapping that reads an enrichment-tree
+# path. Every one of those is a shape you can see in this repo and cannot see
+# through a typed client. Also: no dependency here can drift out from under the
+# lesson, because urllib ships with Python.
+
+[project.optional-dependencies]
+dev = ["ruff>=0.6.0"]
