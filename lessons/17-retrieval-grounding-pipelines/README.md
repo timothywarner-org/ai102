@@ -138,7 +138,7 @@ retrieval bug.
 
 ## Status
 
-**Verified live.** All three beats ran green against `srch-ai103-l17-tw` cold and
+**Verified live.** All three beats ran green against `YOUR-SEARCH-SERVICE` cold and
 then warm, including the Agent Framework tool call in Beat 3b. Every number
 quoted in the demo runbook is a real value from that run, captured in
 `validation-output.txt`.

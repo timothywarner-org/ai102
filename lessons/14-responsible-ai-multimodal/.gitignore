@@ -1,0 +1,12 @@
+# Lesson 14 local artifacts.
+#
+# out/    watermarked remediation output from m14_visual_policy.py
+# .cache/ content-hashed responses so a retake is instant and identical
+#
+# Both are derived state. `--clean` on any script deletes them for you, so you
+# never have to remember a manual rm before a take.
+out/
+.cache/
+__pycache__/
+*.egg-info/
+audit.jsonl

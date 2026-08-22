@@ -25,10 +25,10 @@ set -euo pipefail   # fail fast: exit on error, unset var, or broken pipe
 # 0) Variables -- the only block you edit. Everything downstream derives IDs
 #    dynamically with --query, so there are no brittle hardcoded resource IDs.
 # ---------------------------------------------------------------------------
-SUBSCRIPTION_ID="92fd53f2-c38e-461a-9f50-e1ef3382c54c"
+SUBSCRIPTION_ID="00000000-0000-0000-0000-000000000000"
 RESOURCE_GROUP="rg-ai103-core"                       # where the Foundry account lives
 LOCATION="eastus2"
-FOUNDRY_ACCOUNT="aif-ai103-mvp-quc6kxy2j2v2q"        # the AIServices (Foundry) account
+FOUNDRY_ACCOUNT="YOUR-FOUNDRY-RESOURCE"        # the AIServices (Foundry) account
 MODEL_DEPLOYMENT="gpt-5-mini"                         # deployment NAME, not model family
 
 IDENTITY_NAME="id-ai103-batch-job"                   # our user-assigned managed identity

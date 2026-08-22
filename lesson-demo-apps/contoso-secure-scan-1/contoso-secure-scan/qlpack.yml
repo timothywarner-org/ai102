@@ -1,0 +1,6 @@
+name: timothywarner-org/contoso-secure-scan
+version: 1.0.0
+description: "Contoso Custom Security Query Pack for JavaScript"
+dependencies:
+  codeql/javascript-all: "*"
+library: false 

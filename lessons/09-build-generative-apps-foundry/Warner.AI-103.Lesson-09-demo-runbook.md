@@ -5,7 +5,7 @@ Runs against the same M365 RAG index from Lesson 8, plus Application Insights
 (`appi-ai103-l09`, connected to `proj-lesson-08`).
 
 ## Pre-flight (off camera)
-1. `cd C:\github\ai103\lessons\09-build-generative-apps-foundry`
+1. `cd lessons/09-build-generative-apps-foundry`
 2. `az login`
 3. `uv sync`
 4. Make sure the L8 index is warm: from the L8 folder, `uv run rag.py ingest` (once).

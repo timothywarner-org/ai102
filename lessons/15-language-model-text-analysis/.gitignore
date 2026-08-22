@@ -1,0 +1,8 @@
+.env
+.venv/
+.cache/
+out/
+_to_delete/
+__pycache__/
+*.egg-info/
+validation-output.txt

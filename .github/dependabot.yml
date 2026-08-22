@@ -2,8 +2,8 @@
 # Automated dependency updates for the real course demo apps only.
 #
 # DELIBERATELY EXCLUDED from scanning (do not add them back):
-#   - lesson-demo-apps/globomantics-secure-scan-1  (INTENTIONALLY VULNERABLE -- the SAST/CodeQL
-#   - lesson-demo-apps/globomantics-vulnerable-app-1  lesson. Bumping its deps defeats the demo.)
+#   - lesson-demo-apps/contoso-secure-scan-1  (INTENTIONALLY VULNERABLE -- the SAST/CodeQL
+#   - lesson-demo-apps/contoso-vulnerable-app-1  lesson. Bumping its deps defeats the demo.)
 #   - lesson-demo-apps/tim-chat-front-end/ideas-for-pondering/**  (scratch/experimental sandbox,
 #                                                                  not course material.)
 # The previous config scanned "/" recursively, which pulled those in and produced a flood of
@@ -65,5 +65,5 @@ updates:
 
 # Learner notes:
 # - Dependabot checks weekly (Saturday 09:00 UTC / 03:00 Central) and opens ONE grouped PR per app.
-# - The intentionally-vulnerable globomantics apps are excluded on purpose so the security lesson
+# - The intentionally-vulnerable contoso apps are excluded on purpose so the security lesson
 #   stays intact. Do not add them to the directories list.

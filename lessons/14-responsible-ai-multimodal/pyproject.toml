@@ -1,0 +1,59 @@
+[project]
+name = "ai103-lesson14-responsible-multimodal"
+version = "1.0.0"
+description = "AI-103 Lesson 14 demo assets - responsible AI for multimodal content (image filters, indirect prompt injection, visual policy)"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{ name = "Tim Warner" }]
+
+dependencies = [
+    # Vision chat on the Foundry /openai/v1 surface. Plain OpenAI client, NOT
+    # AzureOpenAI - AzureOpenAI appends an api-version query parameter and the
+    # v1 path rejects it.
+    "openai>=1.68.0",
+
+    # AzureCliCredential + get_bearer_token_provider. Keyless everywhere. There
+    # is no API key anywhere in this lesson and that is deliberate.
+    "azure-identity>=1.19.0",
+
+    # load_dotenv(override=True)
+    "python-dotenv>=1.0.1",
+
+    # Generating the demo images and stamping the disclosure watermark in
+    # m14_visual_policy.py --apply-watermark.
+    "pillow>=10.4.0",
+]
+
+# NOTE ON WHAT IS *NOT* HERE: azure-ai-contentsafety.
+# The SDK exists and it is good. These scripts call Content Safety with plain
+# urllib instead, because the REST shape IS the lesson - the URL, the
+# api-version, the Bearer header, and the request body are all things the exam
+# expects you to recognize on sight. Wrap it in an SDK for production, where you
+# want typed models, retries, and connection pooling. Read it raw here.
+
+[project.optional-dependencies]
+dev = ["ruff>=0.6.0"]
+
+# -----------------------------------------------------------------------------
+# Setup:
+#   uv sync                       (or: python -m venv .venv && pip install -e .)
+#   az login
+#   cp .env.example .env          then fill in the two endpoints
+#   uv run python m14_visual_filter.py --dry-run
+# -----------------------------------------------------------------------------
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+py-modules = [
+    "m14_cache",
+    "m14_visual_filter",
+    "m14_pixel_injection",
+    "m14_visual_policy",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"

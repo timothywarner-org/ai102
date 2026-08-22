@@ -1,0 +1,30 @@
+[project]
+name = "ai103-lesson15-language-text-analysis"
+version = "1.0.0"
+description = "AI-103 Lesson 15 demo assets - language model text analysis and translation"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{ name = "Tim Warner" }]
+
+dependencies = [
+    # Chat + structured outputs on the Foundry /openai/v1 surface. Plain OpenAI
+    # client, NOT AzureOpenAI: AzureOpenAI appends an api-version query
+    # parameter and the v1 path rejects it.
+    "openai>=1.68.0",
+
+    # AzureCliCredential. Keyless everywhere; there is no API key in this lesson.
+    "azure-identity>=1.19.0",
+
+    # load_dotenv(override=True), so a stale shell var cannot shadow .env
+    "python-dotenv>=1.0.1",
+]
+
+# NOTE ON WHAT IS *NOT* HERE: azure-ai-textanalytics and
+# azure-ai-translation-text. Both SDKs exist and both are good. These scripts
+# call the REST surface with urllib instead, because the request shape IS the
+# lesson -- the :analyze-text path, the modelVersion parameter, the three
+# Translator auth headers, and the mstrans:dictionary markup are all things the
+# exam expects you to recognize on sight. Wrap them in an SDK for production.
+
+[project.optional-dependencies]
+dev = ["ruff>=0.6.0"]

@@ -1,0 +1,14 @@
+{
+  // Copy to `ai103.code-workspace` (gitignored) and adjust the second path to
+  // wherever your own course-authoring folder lives. The committed file is an
+  // example so the repo never carries one machine's absolute paths.
+  "folders": [
+    {
+      "name": "ai103",
+      "path": "."
+    }
+    // Optional second folder for course authoring, e.g.:
+    // { "name": "course-dev", "path": "../path/to/your/authoring/folder" }
+  ],
+  "settings": {}
+}

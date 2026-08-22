@@ -184,3 +184,61 @@ cython_debug/
 # uv pins the per-lesson Python version; this MUST be committed so clones
 # get the right interpreter (Agent Framework wheels need 3.10-3.13, not 3.14)
 !.python-version
+
+# Generated demo media -- L12 renders image/video output into this folder.
+# Regenerate with the m12_* scripts; do not commit multi-megabyte PNG/MP4 takes.
+lessons/12-image-video-generation/out/
+
+# L12 Beat 1 fixtures. The img/ folder holds 22 sample images locally, but only the
+# three the demo actually needs are committed -- the rest are ~65 MB of interchangeable
+# negative controls, and git would carry every byte forever in a public learner repo.
+#
+# The three that ARE committed are not interchangeable and must never be re-saved:
+#   love_the_style_but_the_text.png  Microsoft-signed C2PA -> ProvenanceDetected
+#   chatgpt-gpt4o-signed.png         OpenAI-signed C2PA    -> NoProvenanceDetected (the point)
+#   raven-skull.png                  no manifest at all    -> NoProvenanceDetected
+# Re-encoding any of them strips the manifest and silently breaks the beat.
+lessons/12-image-video-generation/img/*
+!lessons/12-image-video-generation/img/love_the_style_but_the_text.png
+!lessons/12-image-video-generation/img/chatgpt-gpt4o-signed.png
+!lessons/12-image-video-generation/img/raven-skull.png
+
+# ---------------------------------------------------------------------------
+# Archive (2026-08-22). Content kept locally, deliberately out of the repo.
+#
+# _archive/ holds AI-102-era demo apps, video-production artifacts, and dated
+# backups. It is on disk so nothing is lost, and ignored so learners never
+# clone 200+ MB of material the AI-103 course does not reference.
+# ---------------------------------------------------------------------------
+_archive/
+
+# Video-production artifacts. Captions, SRTs, and clip-title working files are
+# authoring source of truth and stay in the private Pearson GPD folder.
+*.srt
+*_en.srt.txt
+*-captions*.txt
+*clip-titles*.txt
+
+# Dated backups. Git already keeps history; a .bak beside the original only
+# creates ambiguity about which file a learner should open.
+*.bak
+*.bak-*
+_backup-*/
+.audit-backup/
+_runbook-long-backup.md
+_to_delete/
+
+# Generated runbook HTML. Build-RunbookHtml.mjs derives these from the .md,
+# so the .md is the source and the .html is a build output.
+*demo-runbook.html
+
+# Demo output. Scripts regenerate these; they also tend to capture live
+# endpoint names into the shipped surface.
+out/
+.cache-primed/
+*.log
+*.err
+*.sess
+
+# Local editor workspace. Contains absolute paths specific to one machine.
+ai103.code-workspace

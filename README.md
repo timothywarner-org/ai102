@@ -33,22 +33,26 @@ Welcome! This is the official learning hub for my Microsoft Press video course, 
 
 This course covers **18 modules** mapped to the official AI-103 objective domain (5 skill areas, frozen lesson titles below). Each module has hands-on code, demos, and real-world best practices.
 
+Several objectives span two or three lessons, so the same official title appears more than
+once. The official title is frozen and quoted verbatim; the italic note tells you what that
+particular lesson actually covers.
+
 **Objective domain 1: Plan and manage an Azure AI solution** (25-30%)
 
 1. **Choose the appropriate Foundry services for generative AI and agents**
 2. **Set up AI solutions in Foundry**
-3. **Manage, monitor, and secure AI systems**
-4. **Manage, monitor, and secure AI systems**
+3. **Manage, monitor, and secure AI systems** — *manage and monitor: quota, cost, observability, index health*
+4. **Manage, monitor, and secure AI systems** — *secure: managed identity, private networking, RBAC*
 5. **Implement responsible AI across generative AI and agentic systems**
 
 **Objective domain 2: Implement generative AI and agentic solutions** (30-35%)
 
-6. **Build generative applications by using Foundry**
+6. **Build generative applications by using Foundry** — *connect to a project and consume models*
 7. **Optimize and operationalize generative AI systems**
-8. **Build generative applications by using Foundry**
-9. **Build generative applications by using Foundry**
-10. **Build agents by using Foundry**
-11. **Build agents by using Foundry**
+8. **Build generative applications by using Foundry** — *retrieval-augmented generation*
+9. **Build generative applications by using Foundry** — *evaluation and tracing*
+10. **Build agents by using Foundry** — *one agent: roles, memory, tools, function calling*
+11. **Build agents by using Foundry** — *many agents: orchestration, approvals, monitoring*
 
 **Objective domain 3: Implement computer vision solutions** (10-15%)
 
@@ -72,15 +76,83 @@ This course covers **18 modules** mapped to the official AI-103 objective domain
 
 ## 🚀 How to Use This Repo
 
-1. **Clone the repo:**  
-   `git clone https://github.com/timothywarner-org/ai103.git`
-2. **Review the [Course Outline](#course-structure)** above, then open the per-module READMEs in [`/lessons`](./lessons)
-3. **Set up your environment:**  
-   Copy `.env.sample` to `.env` and fill in your Azure keys (never commit secrets!)
-4. **Explore lesson folders:**  
-   Each lesson has its own folder with code, README, and setup instructions.
-5. **Run the code:**  
-   Follow the instructions in each lesson's README.
+### What you need first
+
+| Tool | Why | Get it |
+|---|---|---|
+| **Azure subscription** | Every demo calls real Azure services | [Free account](https://azure.microsoft.com/free/) |
+| **Azure CLI** | The demos authenticate as your `az login` identity | [Install](https://learn.microsoft.com/cli/azure/install-azure-cli) |
+| **uv** | Runs the Python lessons. No `pip`, no manual venvs | [Install](https://docs.astral.sh/uv/getting-started/installation/) |
+| **Node.js 20+** | Only for the standalone apps in `lesson-demo-apps/` | [Install](https://nodejs.org) |
+
+### Get running in five minutes
+
+```bash
+git clone https://github.com/timothywarner-org/ai103.git
+cd ai103
+
+az login                                  # keyless auth: the demos use YOUR identity
+
+cd lessons/01-choose-foundry-services     # start here
+uv sync                                   # builds this lesson's venv from uv.lock
+cp .env.example .env                      # then fill in your Foundry values
+uv run python m01_agent_demo.py
+```
+
+**Every lesson is self-contained.** Each has its own `pyproject.toml`, its own `uv.lock`,
+and its own `.env.example`. You `cd` into a lesson, `uv sync`, and run. There is no
+repo-wide install step and nothing to configure at the root.
+
+**There are no API keys in this course.** Demos authenticate with `az login` through
+`AzureCliCredential`. If a lesson asks you for a key, that is a bug — please open an issue.
+
+### Build the Azure environment
+
+The lessons need a Foundry account, a project, and a model deployment. Rather than
+clicking through the portal, `infra/` builds one in a single command:
+
+```bash
+az deployment group create \
+  -g rg-ai103 \
+  -f infra/ai103-lesson-env.bicep \
+  -p accountName=<globally-unique-name> projectName=proj-lesson-01
+```
+
+**Read [`infra/README.md`](./infra/README.md) before you deploy.** It carries the gotchas,
+most importantly this one: deleting a Foundry account leaves it **soft-deleted**, and you
+must **purge** it to release the name and reclaim the quota.
+
+### Check your setup
+
+```powershell
+pwsh -File verify-demos.ps1        # uv sync + --dry-run across every Python lesson, no Azure calls
+```
+
+That catches import errors and config wiring bugs without spending a cent.
+
+---
+
+## 💸 Cost, quota, and cleanup
+
+**You are spending your own money.** Read this before you start.
+
+- **Quota is the first wall you will hit.** A new subscription does not automatically have
+  throughput for every model. Check what you actually have before deploying:
+  ```bash
+  az cognitiveservices usage list -l eastus2 -o table
+  ```
+  If a model shows a limit of zero, request quota in the Foundry portal under
+  **Management center → Quota**. This is normal and it is not a bug in the demos.
+- **Lesson 12 is the expensive one.** Video generation costs real money per render, and
+  image quality tiers differ roughly 4x in price. Its README says so at the top; believe it.
+- **Search and Foundry bill while idle.** An Azure AI Search service on a Basic tier charges
+  by the hour whether you query it or not.
+- **Tear down when you are done:**
+  ```bash
+  az group delete -n rg-ai103 --yes
+  ```
+  Then **purge** any soft-deleted Foundry account, or its name and quota stay claimed. The
+  command is in [`infra/README.md`](./infra/README.md).
 
 ---
 

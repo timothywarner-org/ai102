@@ -1,6 +1,6 @@
-# GitHub Copilot Custom Instructions for AI-102 Node.js & Azure AI Devs
+# GitHub Copilot Custom Instructions for AI-103 Node.js and Azure AI Devs
 
-Welcome, AI-102 learners! This guide will help you get the most out of GitHub Copilot for Node.js, TypeScript, and Azure AI development in this repo. Delight, clarity, and neurodivergent-friendliness are the name of the game. :)
+Welcome, AI-103 learners! This guide will help you get the most out of GitHub Copilot for Node.js, TypeScript, and Azure AI development in this repo. Delight, clarity, and neurodivergent-friendliness are the name of the game. :)
 
 ---
 

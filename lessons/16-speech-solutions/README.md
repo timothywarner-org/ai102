@@ -70,7 +70,7 @@ Results are cached by content hash, so retakes replay instantly and identically.
 
 ## Status
 
-**Verified live.** All four beats ran green against `aif-ai103-l11-gcn5uizgywfac`
+**Verified live.** All four beats ran green against `YOUR-FOUNDRY-RESOURCE`
 in `eastus2` on 2026-08-13. Every result quoted in the demo runbook is a real
 string from that run, captured in `validation-output.txt`.
 

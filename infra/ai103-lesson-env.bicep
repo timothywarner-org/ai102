@@ -25,6 +25,14 @@
 //     -p userObjectId=$(az ad signed-in-user show --query id -o tsv) \
 //        projectName=proj-lesson-06 baseName=ai103-l06 deployObservability=false
 //
+// USAGE -- Lesson 12, image + video generation on the shared account:
+//   az deployment group create -g rg-ai103-mvp -n lesson-12 \
+//     -f infra/ai103-lesson-env.bicep \
+//     -p userObjectId=$(az ad signed-in-user show --query id -o tsv) \
+//        accountName=YOUR-FOUNDRY-RESOURCE projectName=proj-lesson-12 \
+//        baseName=ai103-l12 deployObservability=false \
+//        deployImageModel=true deployVideoModel=true
+//
 // SHARING ONE ACCOUNT ACROSS LESSONS: pass the SAME accountName on each
 // deployment and vary only projectName. Foundry accounts carry the model quota,
 // so one account with several projects keeps you inside a single TPM grant.
@@ -62,6 +70,35 @@ param modelVersion string = '2025-08-07'
 
 @description('Rate limit in thousands of tokens per minute. 50 leaves headroom so a retry never interrupts a take.')
 param modelCapacity int = 50
+
+// -----------------------------------------------------------------------------
+// Lesson 12 -- image and video generation. Both flags default to FALSE, so every
+// lesson that shipped before L12 deploys exactly what it deployed yesterday.
+// -----------------------------------------------------------------------------
+
+@description('Set true for lessons that generate images (L12). Adds a gpt-image-2 deployment to the same account.')
+param deployImageModel bool = false
+
+@description('Set true for lessons that generate video (L12). Adds a sora-2 deployment. Requires location eastus2 or swedencentral.')
+param deployVideoModel bool = false
+
+@description('Image model deployment name. Do NOT use gpt-image-1 (retires 2026-10-23) or dall-e-3 (already retired 2026-03-04).')
+param imageModelName string = 'gpt-image-2'
+
+@description('Image model version. Safe to pin, unlike sora-2: the catalog entry for gpt-image-2 is current.')
+param imageModelVersion string = '2026-04-21'
+
+@description('Image rate limit in REQUESTS per minute -- not thousands of tokens. 2 RPM is the granted quota and is ample for a demo.')
+param imageModelCapacity int = 2
+
+@description('Video model deployment name.')
+param videoModelName string = 'sora-2'
+
+@description('Video model version. LEAVE THIS EMPTY. Empty means "let the service choose its current default"; pinning a version here is exactly how the L12 environment broke. Read the comment above videoModelDefinition before you change it.')
+param videoModelVersion string = ''
+
+@description('Video rate limit in REQUESTS per minute -- not thousands of tokens. 9 RPM is the granted quota.')
+param videoModelCapacity int = 9
 
 @description('Friendly name shown in the Foundry portal project list.')
 param projectDisplayName string = projectName
@@ -109,6 +146,89 @@ resource deployment 'Microsoft.CognitiveServices/accounts/deployments@2025-06-01
   }
 }
 
+// -----------------------------------------------------------------------------
+// Lesson 12 -- image and video model deployments, optional per lesson.
+//
+// SEQUENCING IS LOAD-BEARING, NOT STYLE. Model deployments on ONE Cognitive
+// Services account have to be created ONE AT A TIME. Left alone, ARM fans the
+// deployment PUTs out in parallel, the concurrent writes against the same
+// account conflict, and the template fails INTERMITTENTLY -- sometimes on the
+// second deployment, sometimes on the third, sometimes not at all, which is the
+// worst kind of failure to debug the morning of a recording. The dependsOn
+// chain below forces chat -> image -> video -> project.
+//
+// Every link in that chain is listed EXPLICITLY rather than leaning on
+// transitivity, because ARM DROPS a dependsOn entry whose target resource has a
+// false condition. With deployImageModel=false, a video deployment that only
+// depended on the image deployment would silently lose its ordering and race the
+// chat deployment -- the precise bug this comment exists to prevent.
+//
+// REGIONS: on this subscription sora-2 deploys to eastus2 and swedencentral
+// ONLY; gpt-image-2 additionally allows westus3 and polandcentral. location is
+// deliberately NOT narrowed with @allowed, because it governs the whole template
+// and lessons 1-11 must stay free to target any region. Set deployVideoModel to
+// true anywhere but those two regions and the model deployment fails.
+// -----------------------------------------------------------------------------
+
+resource imageDeployment 'Microsoft.CognitiveServices/accounts/deployments@2025-06-01' = if (deployImageModel) {
+  parent: account
+  name: imageModelName
+  sku: { name: 'GlobalStandard', capacity: imageModelCapacity }
+  properties: {
+    model: { format: 'OpenAI', name: imageModelName, version: imageModelVersion }
+    // NOT NoAutoUpgrade, unlike the chat deployment above. Image output is
+    // nondeterministic anyway, so pinning buys no on-screen stability, while this
+    // model family retires fast -- gpt-image-1 goes away 2026-10-23 and dall-e-3
+    // already did (2026-03-04, leaving existing deployments non-functional).
+    // Riding the current default is the safer failure mode here, and it matches
+    // what the live L12 account is running.
+    versionUpgradeOption: 'OnceNewDefaultVersionAvailable'
+    raiPolicyName: 'Microsoft.DefaultV2'
+  }
+  // Serialize behind the chat deployment. See the sequencing note above.
+  dependsOn: [ deployment ]
+}
+
+// DO NOT PIN THE SORA VERSION. Read this before you "fix" videoModelVersion.
+//
+// The Foundry model catalog STILL ADVERTISES sora-2 version 2025-10-06, and that
+// version is dead. Deploying it fails with:
+//
+//   ServiceModelDeprecated: The model 'Format:OpenAI,Name:sora-2,
+//   Version:2025-10-06' has been deprecated since 07/15/2026
+//
+// The catalog is wrong, so a version copied out of it cannot be trusted. Omit the
+// version and the service selects its own current default, which is by definition
+// a live one -- it resolved to 2025-12-08 on 2026-08-11. The ARM contract backs
+// this up: DeploymentModel.version is documented as "Optional ... If version is
+// not specified, a default version will be assigned."
+//
+// Bicep has no "omit this key" modifier for an object literal, so the model
+// object is declared as two complete alternatives and the version key simply does
+// not exist in the empty-string branch. Sending version: '' instead would put an
+// empty version on the wire and fail validation, which is why this is not a
+// one-liner ternary inside the resource body.
+var videoModelDefinition = empty(videoModelVersion)
+  ? { format: 'OpenAI', name: videoModelName }
+  : { format: 'OpenAI', name: videoModelName, version: videoModelVersion }
+
+resource videoDeployment 'Microsoft.CognitiveServices/accounts/deployments@2025-06-01' = if (deployVideoModel) {
+  parent: account
+  name: videoModelName
+  sku: { name: 'GlobalStandard', capacity: videoModelCapacity }
+  properties: {
+    model: videoModelDefinition
+    // Must NOT be NoAutoUpgrade. With no pinned version this deployment rides the
+    // service default on purpose, and that is what keeps the next deprecation from
+    // stranding it the way 2025-10-06 stranded the last one.
+    versionUpgradeOption: 'OnceNewDefaultVersionAvailable'
+    raiPolicyName: 'Microsoft.DefaultV2'
+  }
+  // BOTH links are required -- imageDeployment alone is not enough when
+  // deployImageModel is false. See the sequencing note above.
+  dependsOn: [ deployment, imageDeployment ]
+}
+
 resource project 'Microsoft.CognitiveServices/accounts/projects@2025-06-01' = {
   parent: account
   name: projectName
@@ -118,7 +238,10 @@ resource project 'Microsoft.CognitiveServices/accounts/projects@2025-06-01' = {
     displayName: projectDisplayName
     description: 'AI-103 lesson project provisioned from infra/ai103-lesson-env.bicep.'
   }
-  dependsOn: [ deployment ]
+  // Last link in the chat -> image -> video -> project chain. Creating the
+  // project while a model deployment is still writing to the same account is the
+  // same concurrency conflict, so the project waits for all three.
+  dependsOn: [ deployment, imageDeployment, videoDeployment ]
 }
 
 // -----------------------------------------------------------------------------
@@ -203,6 +326,12 @@ output foundryProjectEndpoint string = 'https://${account.name}.services.ai.azur
 
 @description('Paste into FOUNDRY_MODEL. This is the DEPLOYMENT name, not the model family name.')
 output foundryModel string = deployment.name
+
+@description('Paste into FOUNDRY_IMAGE_MODEL. Empty string when deployImageModel is false.')
+output foundryImageModel string = deployImageModel ? imageModelName : ''
+
+@description('Paste into FOUNDRY_VIDEO_MODEL. Empty string when deployVideoModel is false.')
+output foundryVideoModel string = deployVideoModel ? videoModelName : ''
 
 @description('Paste into APPLICATIONINSIGHTS_CONNECTION_STRING. Secret: never commit it.')
 output appInsightsConnectionString string = deployObservability ? appInsights.properties.ConnectionString : ''

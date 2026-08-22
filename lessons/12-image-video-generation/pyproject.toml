@@ -1,0 +1,31 @@
+[project]
+name = "ai103-m12-demos"
+version = "1.0.0"
+description = "AI-103 Module 12 demo: text-to-image, mask-based image editing, Sora video generation, and video remix, keyless via Entra ID."
+readme = "README.md"
+# No Agent Framework in this lesson, so the 3.13 ceiling that L10/L11 carry does
+# not apply here. The floor is 3.10 to stay consistent with the rest of the course.
+requires-python = ">=3.10"
+dependencies = [
+    "azure-identity>=1.19.0",
+    # The `videos` resource (create/retrieve/remix/download_content) is recent.
+    # On an older openai package the video demos fail at import-adjacent runtime
+    # with: AttributeError: 'OpenAI' object has no attribute 'videos'.
+    # 2.44.0 is the version this lesson was recorded against.
+    "openai>=2.44.0",
+    # Pillow builds the edit mask. m12_image_edit.py generates the mask in code
+    # rather than shipping a PNG, so learners can see that a mask is nothing more
+    # exotic than an alpha channel with a hole punched in it.
+    "pillow>=11.0.0",
+    "python-dotenv>=1.0.0",
+    # Beat 1 only, and optional at that: the cloud provenance API is the primary
+    # path, and this is the offline fallback plus the "what does the manifest
+    # actually SAY" view the cloud API does not expose. The Windows wheel is ~86 MB
+    # and tagged py3-none, so one wheel serves every Python 3.10+ with no Rust
+    # toolchain. Pinned to a minor: this library churns across 0.x releases and the
+    # Reader API changed shape between them.
+    "c2pa-python>=0.37,<0.38",
+]
+
+[tool.pylint.format]
+max-line-length = 120

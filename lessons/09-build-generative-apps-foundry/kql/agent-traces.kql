@@ -20,25 +20,25 @@
 // Portal deep links -- paste into the address bar, already scoped to the resource:
 //
 //   Logs (KQL editor) -- CLASSIC names, which is what this file uses
-//   https://portal.azure.com/#resource/subscriptions/92fd53f2-c38e-461a-9f50-e1ef3382c54c/resourceGroups/rg-ai103-mvp/providers/microsoft.insights/components/appi-ai103-l09/logs
+//   https://portal.azure.com/#resource/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-ai103-mvp/providers/microsoft.insights/components/appi-ai103-l09/logs
 //
 //   Transaction search
-//   https://portal.azure.com/#resource/subscriptions/92fd53f2-c38e-461a-9f50-e1ef3382c54c/resourceGroups/rg-ai103-mvp/providers/microsoft.insights/components/appi-ai103-l09/searchV1
+//   https://portal.azure.com/#resource/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-ai103-mvp/providers/microsoft.insights/components/appi-ai103-l09/searchV1
 //
 //   Live metrics
-//   https://portal.azure.com/#resource/subscriptions/92fd53f2-c38e-461a-9f50-e1ef3382c54c/resourceGroups/rg-ai103-mvp/providers/microsoft.insights/components/appi-ai103-l09/quickPulse
+//   https://portal.azure.com/#resource/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-ai103-mvp/providers/microsoft.insights/components/appi-ai103-l09/quickPulse
 //
 //   Application map
-//   https://portal.azure.com/#resource/subscriptions/92fd53f2-c38e-461a-9f50-e1ef3382c54c/resourceGroups/rg-ai103-mvp/providers/microsoft.insights/components/appi-ai103-l09/applicationMap
+//   https://portal.azure.com/#resource/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-ai103-mvp/providers/microsoft.insights/components/appi-ai103-l09/applicationMap
 //
 //   Failures
-//   https://portal.azure.com/#resource/subscriptions/92fd53f2-c38e-461a-9f50-e1ef3382c54c/resourceGroups/rg-ai103-mvp/providers/microsoft.insights/components/appi-ai103-l09/failures
+//   https://portal.azure.com/#resource/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-ai103-mvp/providers/microsoft.insights/components/appi-ai103-l09/failures
 //
 //   Workspace-side Logs -- WORKSPACE names (AppDependencies / Properties)
-//   https://portal.azure.com/#resource/subscriptions/92fd53f2-c38e-461a-9f50-e1ef3382c54c/resourceGroups/rg-ai103-mvp/providers/microsoft.operationalinsights/workspaces/log-ai103-l09/logs
+//   https://portal.azure.com/#resource/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-ai103-mvp/providers/microsoft.operationalinsights/workspaces/log-ai103-l09/logs
 //
 //   Search service (index health)
-//   https://portal.azure.com/#resource/subscriptions/92fd53f2-c38e-461a-9f50-e1ef3382c54c/resourceGroups/rg-ai103-mvp/providers/microsoft.search/searchServices/srch-ai103-basic-gcn5/overview
+//   https://portal.azure.com/#resource/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-ai103-mvp/providers/microsoft.search/searchServices/srch-ai103-basic-gcn5/overview
 //
 // Multi-tenant note: if the portal opens the wrong directory, insert your tenant
 // right after the hash, like https://portal.azure.com/#@contoso.onmicrosoft.com/resource/...

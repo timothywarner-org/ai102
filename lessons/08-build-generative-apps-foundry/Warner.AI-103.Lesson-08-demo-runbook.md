@@ -5,7 +5,7 @@ Corpus = real files from your M365 tenant (`m365_docs.json`): a prompt-engineeri
 PDF (base) + the Responsible AI report (the reindex "new doc").
 
 ## Pre-flight (off camera)
-1. `cd C:\github\ai103\lessons\08-build-generative-apps-foundry`
+1. `cd lessons/08-build-generative-apps-foundry`
 2. `az login`
 3. `uv sync`
 4. `uv run rag.py ingest`   ← warms the index so step 2 below isn't cold

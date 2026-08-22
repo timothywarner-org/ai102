@@ -1,0 +1,10 @@
+MASTER SERVICES AGREEMENT - CLAUSE 7.3, DATA HANDLING
+
+Contoso Freight Services ("Provider") shall retain all shipment manifests
+transmitted by Northwind Logistics ("Customer") for a period of not less than
+seven years from the date of carriage. Provider shall notify Customer in writing
+within seventy-two hours of becoming aware of any unauthorized disclosure of
+Customer data. Provider's aggregate liability under this clause shall not exceed
+the total fees paid by Customer in the twelve months preceding the incident.
+Customer may audit Provider's compliance with this clause once per contract year
+upon thirty days written notice.

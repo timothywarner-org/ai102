@@ -1,34 +1,62 @@
 // =============================================================================
 // AI-103 Lesson 11 -- Query B: follow one request across a multi-agent hand-off
 //
-// This is the query that makes orchestration observable. Every agent that
-// participates in ONE customer request shares a single operation_Id, so this
-// reconstructs the whole journey: triage -> specialist -> tool -> answer.
+// WHAT THIS ANSWERS
+//   "One customer asked one question. Which agents touched it, which tools ran,
+//    and how long did the whole thing take?"
 //
-// This is the query that returns nothing if your agents run in separate
-// processes without distributed tracing wired up. If it returns rows, your
-// multi-agent telemetry is genuinely correct.
+// THE ONE IDEA YOU NEED
+//   Each unit of work emits a SPAN: one row saying "this ran, and it took this
+//   long." A single customer request scatters a dozen such rows. Every one of
+//   them carries the same operation_Id, a correlation ID stamped across one
+//   request. Group by operation_Id and the request reassembles itself.
+//
+// THE SPAN NAMES (this is the whole vocabulary)
+//   workflow.run       the request starts
+//   executor.process   one agent takes its turn   -> agent name is here
+//   invoke_agent       an agent calls the model
+//   execute_tool       a tool function runs       -> tool name is here
+//   Span names arrive as "verb subject", e.g. "executor.process billing", which
+//   is why the code below splits on a space and keeps element [1].
+//
+// HOW THE QUERY READS, TOP TO BOTTOM
+//   1. Pull agent spans from the last 24 hours.
+//   2. Tag each span with the agent or tool name it refers to.
+//   3. Collapse all spans sharing an operation_Id into ONE row per request.
+//   4. Keep only requests where more than one agent was involved (a real hand-off).
+//
+// IF IT RETURNS NOTHING, that is a DIAGNOSIS, not an empty result: distributed
+// tracing is not wired up. Rows mean your multi-agent telemetry is correct.
 //
 // Paste into: Application Insights -> Logs
 // =============================================================================
 dependencies
 | where timestamp > ago(24h)
+// Step 1: keep only the four span types the Agent Framework emits. Everything
+// else in the dependencies table (HTTP calls, SDK chatter) is noise here.
 | where name startswith "executor.process"
     or name startswith "invoke_agent"
     or name startswith "execute_tool"
     or name startswith "workflow.run"
+// A human-readable label for each span, number-prefixed so it sorts in
+// execution order. Not projected at the end -- add `step` to the project line
+// (and drop the summarize) when you want the raw span-by-span timeline instead
+// of the one-row-per-request summary.
 | extend step = case(
     name startswith "workflow.run",     "0-workflow",
     name startswith "executor.process", strcat("1-agent:", tostring(split(name, " ")[1])),
     name startswith "invoke_agent",     strcat("2-invoke:", tostring(split(name, " ")[1])),
                                         strcat("3-tool:",   tostring(split(name, " ")[1]))
 )
-// Classify each span, then aggregate. Building the agent and tool names as
-// nullable columns keeps make_set() clean: make_set skips nulls, so there is no
-// empty-string bucket to strip afterwards.
+// Step 2: pull the NAME out of each span. "executor.process billing" carries the
+// agent name; "execute_tool lookup_invoice" carries the tool name. Every other
+// span type gets an empty string, which step 3 then filters away.
 | extend
     agent_name = iff(name startswith "executor.process", tostring(split(name, " ")[1]), ""),
     tool_name  = iff(name startswith "execute_tool",     tostring(split(name, " ")[1]), "")
+// Step 3: collapse to ONE ROW PER CUSTOMER REQUEST. This is where the many spans
+// become a single readable journey. make_set_if builds a de-duplicated list and
+// skips the empty strings, so `agents` holds only real agent names.
 | summarize
     agents      = make_set_if(agent_name, isnotempty(agent_name)),
     tools       = make_set_if(tool_name,  isnotempty(tool_name)),
@@ -36,7 +64,9 @@ dependencies
     total_ms    = round(sum(duration), 1),
     started     = min(timestamp)
     by operation_Id
-// Keep only genuine multi-agent traces: more than one distinct agent involved.
+// Step 4: a real hand-off means two or more agents touched the same request.
+// One agent means triage answered alone, which is not what this query is about.
+// Comment this line out to see every request, hand-off or not.
 | where array_length(agents) > 1
 | project started, operation_Id, agents, tools, span_count, total_ms
 | order by started desc

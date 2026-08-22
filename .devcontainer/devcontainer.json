@@ -1,5 +1,5 @@
 {
-    "name": "AI-102 Fast Dev Environment",
+    "name": "AI-103 Fast Dev Environment",
     "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
     "customizations": {
         "vscode": {

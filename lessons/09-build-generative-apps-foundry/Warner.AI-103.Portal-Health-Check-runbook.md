@@ -7,7 +7,7 @@ Everything below is written against **your actual resources**, verified live:
 
 | Thing | Name |
 |---|---|
-| Subscription | `92fd53f2-c38e-461a-9f50-e1ef3382c54c` |
+| Subscription | `00000000-0000-0000-0000-000000000000` |
 | Resource group | `rg-ai103-mvp` |
 | Foundry account / project | `aif-ai103-mvp-gcn5uizg` / `proj-lesson-08` |
 | Application Insights (agent + SDK telemetry) | `appi-ai103-l09` |

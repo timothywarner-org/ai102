@@ -13,18 +13,18 @@ lesson topic, e.g. `01-choose-foundry-services`).
 
 - **01** [Choose the appropriate Foundry services for generative AI and agents](./01-choose-foundry-services)
 - **02** [Set up AI solutions in Foundry](./02-set-up-ai-solutions-foundry)
-- **03** [Manage, monitor, and secure AI systems](./03-manage-monitor-secure-ai)
-- **04** [Manage, monitor, and secure AI systems](./04-manage-monitor-secure-ai)
+- **03** [Manage, monitor, and secure AI systems](./03-manage-monitor-secure-ai) — *manage and monitor: quota, cost, observability, index health*
+- **04** [Manage, monitor, and secure AI systems](./04-manage-monitor-secure-ai) — *secure: managed identity, private networking, RBAC*
 - **05** [Implement responsible AI across generative AI and agentic systems](./05-responsible-ai-generative-agentic)
 
 **Objective domain 2: Implement generative AI and agentic solutions** (30-35%)
 
-- **06** [Build generative applications by using Foundry](./06-build-generative-apps-foundry)
+- **06** [Build generative applications by using Foundry](./06-build-generative-apps-foundry) — *connect to a project and consume models*
 - **07** [Optimize and operationalize generative AI systems](./07-optimize-operationalize-genai)
-- **08** [Build generative applications by using Foundry](./08-build-generative-apps-foundry)
-- **09** [Build generative applications by using Foundry](./09-build-generative-apps-foundry)
-- **10** [Build agents by using Foundry](./10-build-agents-foundry)
-- **11** [Build agents by using Foundry](./11-build-agents-foundry)
+- **08** [Build generative applications by using Foundry](./08-build-generative-apps-foundry) — *retrieval-augmented generation*
+- **09** [Build generative applications by using Foundry](./09-build-generative-apps-foundry) — *evaluation and tracing*
+- **10** [Build agents by using Foundry](./10-build-agents-foundry) — *one agent: roles, memory, tools, function calling*
+- **11** [Build agents by using Foundry](./11-build-agents-foundry) — *many agents: orchestration, approvals, monitoring*
 
 **Objective domain 3: Implement computer vision solutions** (10-15%)
 
@@ -46,11 +46,18 @@ lesson topic, e.g. `01-choose-foundry-services`).
 
 Each lesson subfolder contains:
 
-- Code samples and demo apps
-- A `README.md` with lesson context and run instructions
-- `.env.example` (where a runnable demo needs configuration)
+- **Demo scripts** named `mNN_*.py`, runnable with `uv run python <script>.py`
+- A **`README.md`** with the verbatim learning objectives, setup, and what each demo shows
+- **`.env.example`** listing every variable that lesson needs
+- A **`Warner.AI-103.Lesson-NN-demo-runbook.md`**, the click-by-click talk track
+- **`pyproject.toml`** + **`uv.lock`**, so the lesson builds its own environment
 
-Demo coverage is still landing module by module; see [`../fixes-to-make.md`](../fixes-to-make.md) for status.
+**All 18 lessons ship working demos.** Lesson 04 is deliberately Python-free: securing a
+Foundry account is a portal and infrastructure-as-code job, so it runs from the Azure portal
+and the Bicep in [`../infra`](../infra) rather than from an SDK script.
+
+Most demo scripts accept `--dry-run`, which prints exactly what the script would do and makes
+no Azure calls. That is the cheapest way to confirm your `.env` is wired correctly.
 
 ---
 Part of the [AI-103 course repository](https://github.com/timothywarner-org/ai103) by Tim Warner.

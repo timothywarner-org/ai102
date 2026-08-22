@@ -5,16 +5,16 @@ older note. If something here disagrees with what you were told, THIS IS RIGHT.
 
 | What | Value |
 | --- | --- |
-| subscription | `92fd53f2-c38e-461a-9f50-e1ef3382c54c` (vs-enterprise-150-monthly-2025) |
-| identity | `tim@techtrainertim.com` — `az login` already done |
+| subscription | `00000000-0000-0000-0000-000000000000` (YOUR-SUBSCRIPTION-NAME) |
+| identity | `you@contoso.com` — `az login` already done |
 | resource group | `rg-ai103-mvp` |
-| **AI Search** | **`srch-ai103-l17-tw`** |
+| **AI Search** | **`YOUR-SEARCH-SERVICE`** |
 | **Search tier** | **`standard` (S1) — NOT Basic. Do not avoid features on tier grounds.** |
 | **Search region** | **`southcentralus` — NOT eastus2.** |
-| Search endpoint | `https://srch-ai103-l17-tw.search.windows.net` |
+| Search endpoint | `https://YOUR-SEARCH-SERVICE.search.windows.net` |
 | semantic ranker | enabled, `standard` plan |
-| Foundry account | `aif-ai103-l11-gcn5uizgywfac` (eastus2) |
-| storage | `stai103l12prov92fd53` (eastus2) |
+| Foundry account | `YOUR-FOUNDRY-RESOURCE` (eastus2) |
+| storage | `YOURSTORAGEACCOUNT` (eastus2) |
 | embeddings | `text-embedding-3-large` deployment |
 | chat | `gpt-5.1`, `gpt-5-mini` |
 
@@ -47,7 +47,7 @@ S1 is roughly **$245/month**, about **$8/day**. It is deliberately oversized so
 nothing throttles mid-recording. **It must be deleted after Tim records:**
 
 ```powershell
-az search service delete -g rg-ai103-mvp -n srch-ai103-l17-tw --yes
+az search service delete -g rg-ai103-mvp -n YOUR-SEARCH-SERVICE --yes
 ```
 
 Put that line in the runbook's cleanup section. Do not let it quietly bill.
@@ -85,12 +85,12 @@ The notes above said the search service had no managed identity. It has one now,
 and the lab does not work without it.
 
 ```
-az search service update -n srch-ai103-l17-tw -g rg-ai103-mvp --identity-type SystemAssigned
+az search service update -n YOUR-SEARCH-SERVICE -g rg-ai103-mvp --identity-type SystemAssigned
 ```
 
 | Item | Value |
 | --- | --- |
-| system-assigned principalId | `0eb870be-af23-441f-aba6-9cccb8129329` |
+| system-assigned principalId | `<SEARCH-SERVICE-PRINCIPAL-ID>` |
 | role on the Foundry account | `Cognitive Services User` (billing attach) |
 | role on the Foundry account | `Cognitive Services OpenAI User` (embedding skill, vectorizer) |
 | role on the storage account | `Storage Blob Data Reader` (blob data source) |

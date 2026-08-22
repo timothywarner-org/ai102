@@ -2,7 +2,7 @@
 
 **3 beats, 4 commands, 14-16 min** | `lessons/18-extract-content-documents/`
 
-> **Verified live 2026-08-14** against `aif-ai103-l11-gcn5uizgywfac` (eastus2),
+> **Verified live 2026-08-14** against `YOUR-FOUNDRY-RESOURCE` (eastus2),
 > Content Understanding API **2025-11-01** (GA, not preview). Every `CHECK`
 > below is a real string from a real run. All three beats green, twice.
 
@@ -49,7 +49,7 @@ extracting.
 
 ## PRE-FLIGHT
 
-- [ ] `az login` -> `tim@techtrainertim.com`
+- [ ] `az login` -> `you@contoso.com`
 - [ ] **Token has 30+ min left.** Check before you roll:
       `az account get-access-token --resource https://cognitiveservices.azure.com --query expiresOn -o tsv`
 - [ ] `uv run python m18_extract_demo.py --dry-run` -> both fixtures **[OK]**

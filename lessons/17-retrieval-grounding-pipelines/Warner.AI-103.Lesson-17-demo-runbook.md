@@ -52,11 +52,11 @@ query returns it, six pipeline stages worked.
 
 ## PRE-FLIGHT
 
-- [ ] `az login` -> `tim@techtrainertim.com`
+- [ ] `az login` -> `you@contoso.com`
 - [ ] **Token has 30+ min left.** Tokens last 60-90 min. Check before you roll:
       `az account get-access-token --resource https://search.azure.com --query expiresOn -o tsv`
 - [ ] `pwsh -File validate.ps1 -SkipCold` -> **ALL GREEN, 9 of 9** (~40s, primes the cache)
-- [ ] Search service `srch-ai103-l17-tw` -> **running**
+- [ ] Search service `YOUR-SEARCH-SERVICE` -> **running**
 - [ ] Edge: **Azure portal** on the search service | tab 2 **Foundry**, `proj-agents`
 - [ ] VS Code on `m17_ingest.py` at `skillset_definition`
 - [ ] Terminal font large, scrollback deep. **Beat 3a is 182 lines.**

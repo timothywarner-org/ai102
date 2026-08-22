@@ -46,6 +46,19 @@ Need the environment itself? `infra/ai103-lesson-env.bicep` builds the whole thi
 | `Warner.AI-103.Lesson-11-demo-runbook.md` | The SAY/DO/PAUSE recording runbook |
 | `orchestration-diagram.md` | Deck-authoring companion. The same diagrams inlined below, **plus** a pick-the-pattern decision chart covering all five built-in orchestrations, with the MS Learn source links |
 
+### Coming from LangGraph or a hand-written tool loop?
+
+These orchestration patterns are not a new theory. They are prebuilt shapes for a loop you would otherwise write yourself, so the vocabulary shifts more than the ideas do:
+
+| You already know | Agent Framework calls it | What actually changed |
+| --- | --- | --- |
+| A LangGraph `StateGraph` you add nodes and edges to | A **workflow** from `HandoffBuilder`, `SequentialBuilder`, and friends | You pick a prebuilt edge topology instead of drawing edges yourself |
+| Conditional edges, where your router function returns the next node name | **Handoff**, where the *model* picks the next agent by calling a hidden handoff tool | The routing decision moved from your Python into a model tool call |
+| A `TypedDict` state threaded through nodes | The shared **conversation history**, broadcast to every participant | State is a message list, not a dict you designed |
+| A `tool_use` loop you write by hand | The **executor** running that loop for you | You lose the hand-written `while`, and gain a place to hang approval gates |
+
+The one sentence for this whole lesson: **in LangGraph your code decides who runs next, and in Handoff the model decides who runs next by calling a tool you never see.**
+
 ### `m11_multi_agent.py` -- the headline demo
 
 An orchestrated **multi-agent hand-off**, traced end to end. It covers objective 4 (orchestrated multi-agent solutions) and objective 6 (monitoring and error analysis) in one run.
@@ -56,7 +69,9 @@ uv run python m11_multi_agent.py --dry-run    # show topology, make no Azure cal
 uv run python m11_multi_agent.py --no-trace   # run the hand-off, skip telemetry
 ```
 
-Three specialists behind one front door, built with `HandoffBuilder`. Solid arrows carry the conversation; dashed arrows are model calls:
+Three specialists behind one front door, built with `HandoffBuilder`.
+
+Read the diagram as a story: the customer asks once, **triage** decides who owns the question, that one specialist answers, and the run stops. Solid arrows carry the conversation; dashed arrows are model calls:
 
 ```mermaid
 flowchart LR
@@ -91,32 +106,34 @@ Mechanically, `HandoffBuilder` connects the participants as a **mesh with no cen
 
 ```mermaid
 flowchart TB
-    subgraph WRONG["What most people picture"]
+    subgraph WRONG["NOT this: a central router owns the flow"]
         direction TB
-        O(["central<br/>orchestrator"])
+        O(["central orchestrator<br/><small>your code picks next</small>"])
         A1["agent A"]
         A2["agent B"]
         A3["agent C"]
         O -->|"dispatch"| A1
         O -->|"dispatch"| A2
         O -->|"dispatch"| A3
-        A1 -->|"return"| O
-        A2 -->|"return"| O
-        A3 -->|"return"| O
+        A1 -->|"control returns"| O
+        A2 -->|"control returns"| O
+        A3 -->|"control returns"| O
     end
 
-    subgraph RIGHT["How Handoff actually works"]
+    subgraph RIGHT["THIS: peers, each free to pass to any other"]
         direction TB
         B1["triage"]
         B2["billing"]
         B3["support"]
-        B1 <-->|"broadcast context"| B2
-        B2 <-->|"broadcast context"| B3
-        B1 <-->|"broadcast context"| B3
+        B1 <-->|"may hand off to,<br/>shares history"| B2
+        B2 <-->|"may hand off to,<br/>shares history"| B3
+        B1 <-->|"may hand off to,<br/>shares history"| B3
     end
 
     WRONG ~~~ RIGHT
 ```
+
+If you are looking for the supervisor node, there isn't one. Every agent is handed a set of hidden handoff tools, one per agent it may pass to, and "routing" is just that agent choosing to call one. The mesh shows who is *allowed* to pass to whom, not traffic that flows on every turn.
 
 Two consequences that are genuinely exam-relevant:
 
@@ -163,7 +180,11 @@ happen at all*. The answer is one parameter on the tool, and the tools are risk-
 
 The framework halts **before** the function body executes and returns a
 `function_approval_request` instead of a result. Your code answers with
-`request.to_function_approval_response(approved)` and the run resumes from the pause:
+`request.to_function_approval_response(approved)` and the run resumes from the pause.
+
+If you have hand-written a `tool_use` loop, this is exactly the moment where you would have
+dropped an `input()` before dispatching the tool. Here it is a declared parameter instead of
+loop logic you maintain:
 
 ```mermaid
 sequenceDiagram
@@ -211,7 +232,18 @@ the model correctly refuses to call the refund tool at all and the gate never fi
 
 ### Observability
 
-The demo wires OpenTelemetry to Application Insights with `configure_azure_monitor`, so one run emits `invoke_agent`, `execute_tool`, and `executor.process` spans. Every agent in a single hand-off shares one `operation_Id`, which is what makes the multi-agent query able to follow a request across three agents:
+The demo wires OpenTelemetry to Application Insights with `configure_azure_monitor`, so one run emits `invoke_agent`, `execute_tool`, and `executor.process` spans.
+
+In plain terms: a **span** is one timestamped row saying "this thing ran, and it took this long." One customer request scatters a pile of those rows across three agents, and they all carry the same **`operation_Id`**, a correlation ID stamped on everything in a single request. Group by that ID and you have reassembled the whole request from its pieces. The span names are the vocabulary the queries filter on:
+
+| Span name | Emitted when |
+| --- | --- |
+| `workflow.run` | The whole request starts |
+| `executor.process` | One agent takes its turn |
+| `invoke_agent` | An agent calls the model |
+| `execute_tool` | A tool function actually runs |
+
+That shared `operation_Id` is what lets the multi-agent query follow a request across three agents:
 
 ```mermaid
 flowchart LR

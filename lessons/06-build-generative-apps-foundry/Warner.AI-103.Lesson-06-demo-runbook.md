@@ -17,7 +17,7 @@ This is a BUILD lesson, so code is the surface -- we run it live. Blocks: **[SAY
 
 ---
 
-## Segment 1: Connect to the project  (LO6, ~3 min)
+## Beat 1: Connect to the project  (LO6, ~3 min)
 
 [SAY] Everything starts with one client. Now you might be thinking, hang on, Tim, I've got the model's endpoint right there on the deployment page, why not point my app at that? Because that model endpoint only reaches the one deployment. What you want is the project endpoint, the front door that reaches every model and every connection in the project. So I build one AIProjectClient from the project URL, keyless with my az login identity, and I prove it works by listing the deployments right at startup, so a bad URL or a missing role fails here, not in front of a user.
 
@@ -29,7 +29,7 @@ This is a BUILD lesson, so code is the surface -- we run it live. Blocks: **[SAY
 
 ---
 
-## Segment 2: Consume a deployed model  (LO1, ~3.5 min)
+## Beat 2: Consume a deployed model  (LO1, ~3.5 min)
 
 [SAY] The model's already deployed, and that deployment is infrastructure as code -- the SKU, the pinned version, the content filter, all declared in Bicep. What this lesson is about is consuming it. I ask the project for an OpenAI client, and here's the payoff: what comes back is the exact same OpenAI client you'd use anywhere, except it's keyless and already pointed at my project. I send one question, then a follow-up that remembers the first turn, which is conversation memory with no extra plumbing.
 
@@ -45,7 +45,7 @@ This is a BUILD lesson, so code is the surface -- we run it live. Blocks: **[SAY
 
 ---
 
-## Segment 3: Integrate via connectors  (LO5, ~3 min)
+## Beat 3: Integrate via connectors  (LO5, ~3 min)
 
 [SAY] A real app doesn't just call a model, it reaches other services -- a search index, App Insights, storage. Foundry makes those first-class through connections: you define a connection once, on the project, and every client reuses it, so there's no secret scattered through your code. I list the project's connections from the SDK, and you'll recognize this one -- it's the very same Application Insights we wired up back in the monitoring lesson, now reachable as a first-class connector.
 
@@ -60,7 +60,7 @@ This is a BUILD lesson, so code is the surface -- we run it live. Blocks: **[SAY
 
 ---
 
-## Segment 4: Wrap it in an agent  (capstone, ~3 min)
+## Beat 4: Wrap it in an agent  (capstone, ~3 min)
 
 [SAY] Here's where this is all heading. An agent is a model plus instructions -- and later, tools and memory -- that you publish once and call by name. This is the deep dive of the next two lessons; here it's a sixty-second taste so you see the shape. I create an agent version from a prompt definition, run one turn through a conversation, and delete it on the way out, so nothing's left behind.
 

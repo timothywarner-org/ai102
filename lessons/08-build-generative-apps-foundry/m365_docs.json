@@ -1,0 +1,103 @@
+{
+  "_comment": "RAG corpus sourced from Tim's Microsoft 365 tenant (techtrainertim.com). Base docs are chunked from prompt-engineering-techniques.pdf; new_doc is from the 2025 Responsible AI Transparency Report. Text is faithful to the source files; each doc carries its SharePoint URL for citation.",
+  "source_files": [
+    {
+      "name": "prompt-engineering-techniques.pdf",
+      "url": "https://timwinfo2-my.sharepoint.com/personal/tim_techtrainertim_com/Documents/OLIN_DAY_01/Prompting_Knowledge/prompt-engineering-techniques.pdf"
+    },
+    {
+      "name": "Responsible-AI-Transparency-Report-2025-vertical.pdf",
+      "url": "https://timwinfo2.sharepoint.com/sites/CERTSTAR.NET/Shared Documents/Responsible-AI-Transparency-Report-2025-vertical.pdf"
+    }
+  ],
+  "docs": [
+    {
+      "id": "pe-01",
+      "title": "How GPT models respond to prompts",
+      "category": "basics",
+      "source": "prompt-engineering-techniques.pdf",
+      "url": "https://timwinfo2-my.sharepoint.com/personal/tim_techtrainertim_com/Documents/OLIN_DAY_01/Prompting_Knowledge/prompt-engineering-techniques.pdf",
+      "content": "Text prompts are how users interact with GPT models. Like all generative language models, GPT models attempt to produce the next series of words most likely to follow from the previous text. If you ask a question, the model isn't following a separate Q&A code path; it answers because an answer is the most likely response to that input. Keeping this fundamental behavior in mind helps as you build more complex prompts."
+    },
+    {
+      "id": "pe-02",
+      "title": "Prompt components: instructions, primary content, and cues",
+      "category": "structure",
+      "source": "prompt-engineering-techniques.pdf",
+      "url": "https://timwinfo2-my.sharepoint.com/personal/tim_techtrainertim_com/Documents/OLIN_DAY_01/Prompting_Knowledge/prompt-engineering-techniques.pdf",
+      "content": "It helps to think of a prompt in components. Instructions tell the model what to do and are the most common component. Primary content is the text being processed or transformed, such as a passage to translate or summarize. Cues jump-start the model's output, often as a prefix the model builds onto. With the Chat Completion API, instructions take the form of the system message, and examples are supplied as user/assistant turns."
+    },
+    {
+      "id": "pe-03",
+      "title": "Zero-shot, one-shot, and few-shot learning",
+      "category": "few-shot",
+      "source": "prompt-engineering-techniques.pdf",
+      "url": "https://timwinfo2-my.sharepoint.com/personal/tim_techtrainertim_com/Documents/OLIN_DAY_01/Prompting_Knowledge/prompt-engineering-techniques.pdf",
+      "content": "Few-shot learning includes one or more examples of the desired behavior as input/output pairs, which condition the model to respond as wanted for the current inference. It isn't permanent training. Using no examples is zero-shot learning. With the Chat Completion API, few-shot examples are added to the messages array as example user/assistant interactions after the system message. Examples cleanly show the model how to operate."
+    },
+    {
+      "id": "pe-04",
+      "title": "Supporting content grounds the model in context",
+      "category": "grounding",
+      "source": "prompt-engineering-techniques.pdf",
+      "url": "https://timwinfo2-my.sharepoint.com/personal/tim_techtrainertim_com/Documents/OLIN_DAY_01/Prompting_Knowledge/prompt-engineering-techniques.pdf",
+      "content": "Supporting content is information the model can use to influence its output, such as the current date, the user's name, or the user's important topics. It differs from primary content in that it isn't the main target of the task but is used alongside it. For example, giving the model a list of important topics lets it group a set of workshops by those topics instead of simply listing them."
+    },
+    {
+      "id": "pe-05",
+      "title": "Start with clear instructions and repeat them at the end",
+      "category": "structure",
+      "source": "prompt-engineering-techniques.pdf",
+      "url": "https://timwinfo2-my.sharepoint.com/personal/tim_techtrainertim_com/Documents/OLIN_DAY_01/Prompting_Knowledge/prompt-engineering-techniques.pdf",
+      "content": "The order of information in a prompt matters. Telling the model the task at the beginning, before extra context or examples, can produce higher-quality output. Models are also susceptible to recency bias, meaning information at the end of the prompt can carry more influence. Because of this, it is worth experimenting with repeating the key instructions at the end of the prompt and evaluating the impact."
+    },
+    {
+      "id": "pe-06",
+      "title": "Chain-of-thought prompting",
+      "category": "reasoning",
+      "source": "prompt-engineering-techniques.pdf",
+      "url": "https://timwinfo2-my.sharepoint.com/personal/tim_techtrainertim_com/Documents/OLIN_DAY_01/Prompting_Knowledge/prompt-engineering-techniques.pdf",
+      "content": "Chain-of-thought prompting instructs the model to proceed step by step and present all the steps involved, which reduces inaccuracy and makes the response easier to assess. It is a variation on breaking the task down. Note that this technique applies to non-reasoning models; for reasoning models, attempting to extract the model's reasoning through other methods is not supported and may violate the Acceptable Use Policy."
+    },
+    {
+      "id": "pe-07",
+      "title": "Ask for citations to reduce fabrication",
+      "category": "grounding",
+      "source": "prompt-engineering-techniques.pdf",
+      "url": "https://timwinfo2-my.sharepoint.com/personal/tim_techtrainertim_com/Documents/OLIN_DAY_01/Prompting_Knowledge/prompt-engineering-techniques.pdf",
+      "content": "If you instruct the model to cite the source material when it makes statements, those statements are much more likely to be grounded. Asking for citations forces the model to make two errors for every fabrication: the fabricated response and a bad citation. The closer the citation sits to the text it supports, the better; inline citations are stronger mitigations for false content than citations placed at the end."
+    },
+    {
+      "id": "pe-08",
+      "title": "Temperature and Top_p parameters",
+      "category": "parameters",
+      "source": "prompt-engineering-techniques.pdf",
+      "url": "https://timwinfo2-my.sharepoint.com/personal/tim_techtrainertim_com/Documents/OLIN_DAY_01/Prompting_Knowledge/prompt-engineering-techniques.pdf",
+      "content": "Temperature changes the randomness of the output and can be set between 0 and 2. A higher value like 0.7 makes output more random and divergent; a lower value like 0.2 makes it more focused and concrete. A fictional story suits a higher temperature, a legal document a much lower one. Top_p (top probability) is a similar control that works differently. The general recommendation is to alter only one of these two at a time, not both."
+    },
+    {
+      "id": "pe-09",
+      "title": "Provide grounding context for reliable answers",
+      "category": "grounding",
+      "source": "prompt-engineering-techniques.pdf",
+      "url": "https://timwinfo2-my.sharepoint.com/personal/tim_techtrainertim_com/Documents/OLIN_DAY_01/Prompting_Knowledge/prompt-engineering-techniques.pdf",
+      "content": "One of the most effective ways to get reliable answers is to give the model grounding data to draw from. If your use case relies on up-to-date, reliable information and isn't purely creative, provide grounding data. The closer your source material is to the final form of the answer you want, the less work the model has to do and the less opportunity there is for error. This is the core idea behind retrieval-augmented generation."
+    },
+    {
+      "id": "pe-10",
+      "title": "Best practices: be specific, order matters, give the model an out",
+      "category": "best-practices",
+      "source": "prompt-engineering-techniques.pdf",
+      "url": "https://timwinfo2-my.sharepoint.com/personal/tim_techtrainertim_com/Documents/OLIN_DAY_01/Prompting_Knowledge/prompt-engineering-techniques.pdf",
+      "content": "Be specific and leave little to interpretation. Be descriptive and use analogies. Double down by repeating yourself when needed, giving instructions before and after your primary content. Order matters because of recency bias. And give the model an out: when asking a question over a piece of text, add something like 'respond with not found if the answer isn't present,' which helps the model avoid generating false responses."
+    }
+  ],
+  "new_doc": {
+    "id": "rai-01",
+    "title": "Microsoft's Govern-Map-Measure-Manage approach to responsible AI",
+    "category": "responsible-ai",
+    "source": "Responsible-AI-Transparency-Report-2025-vertical.pdf",
+    "url": "https://timwinfo2.sharepoint.com/sites/CERTSTAR.NET/Shared Documents/Responsible-AI-Transparency-Report-2025-vertical.pdf",
+    "content": "Microsoft's 2025 Responsible AI Transparency Report describes how it builds generative AI systems responsibly across four functions: Govern (policies, people, and processes), Map (identifying risks), Measure (assessing risks and mitigations), and Manage (mitigating AI risks). Per an IDC survey cited in the report, over 30 percent of respondents named the lack of governance and risk-management solutions as the top barrier to adopting and scaling AI, while more than 75 percent who use responsible AI tools said they helped with data privacy, customer experience, and trust."
+  }
+}

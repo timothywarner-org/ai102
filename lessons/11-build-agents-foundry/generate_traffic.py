@@ -18,9 +18,12 @@ WHY THIS EXISTS
     only appends telemetry.
 
 SCOPE
-    This script drives ONE portal-provisioned prompt agent, to add volume and a
-    second agent shape to the telemetry. The multi-agent story lives in
-    m11_multi_agent.py.
+    This script drives TWO portal-provisioned prompt agents: the working specialist
+    and the orchestrator. The orchestrator is EXPECTED TO FAIL with a 401 until its
+    A2A endpoint is enabled, and those failures are the point -- Query A shows the
+    broken agent as an impossibly low P50 (it errors before doing any work), and
+    Query C classifies the span failures. A demo that only ever succeeds cannot
+    teach error analysis. The multi-agent hand-off story lives in m11_multi_agent.py.
 
 API NOTES (these cost real time to discover, so they're written down)
     * A prompt agent is referenced through `agent_reference`, NOT `model=`.
@@ -30,8 +33,9 @@ API NOTES (these cost real time to discover, so they're written down)
       OpenAI client with a bearer token. AzureOpenAI always appends one and fails.
 
 USAGE
-    python generate_traffic.py            # 3 rounds against the specialist agent
-    python generate_traffic.py --rounds 5
+    uv run python generate_traffic.py                      # 3 rounds -> 12 ok, 6 failed
+    uv run python generate_traffic.py --rounds 5           # 20 ok, 10 failed
+    uv run python generate_traffic.py --skip-orchestrator  # specialist only, 12 ok, 0 failed
 """
 from __future__ import annotations
 
@@ -55,13 +59,23 @@ try:
 except ImportError:  # dotenv is convenience only; real env vars still work.
     pass
 
-# Config comes from .env, never hardcoded. The literal is only a fallback so this
-# script keeps working in a folder where .env has not been created yet.
-PROJECT_ENDPOINT = os.environ.get(
-    "FOUNDRY_PROJECT_ENDPOINT",
-    "https://aif-ai103-s9qdgp2o.services.ai.azure.com/api/projects/proj-agents",
-)
+# Config comes from .env, never hardcoded. An earlier cut of this script carried a
+# real endpoint as a fallback, and when that account was deleted the "fallback"
+# quietly pointed every reader at a resource that no longer exists. Failing loudly
+# with a pointer to .env.example is far kinder than a confusing auth error.
+PROJECT_ENDPOINT = os.environ.get("FOUNDRY_PROJECT_ENDPOINT")
+if not PROJECT_ENDPOINT:
+    sys.exit(
+        "ERROR: FOUNDRY_PROJECT_ENDPOINT is not set.\n"
+        "  -> https://<account>.services.ai.azure.com/api/projects/<project>\n"
+        "  See .env.example, then: cp .env.example .env"
+    )
 SPECIALIST = os.environ.get("TRAFFIC_AGENT", "l10-support-agent")
+
+# The orchestrator is deliberately included even though it currently 401s: its
+# failures are what give Query A a broken-agent row and Query C a span-failure row.
+# Override if you renamed it; --skip-orchestrator drops it entirely.
+ORCHESTRATOR = os.environ.get("TRAFFIC_ORCHESTRATOR", "l11-orchestrator")
 
 # Questions the seeded m365_docs corpus CAN answer. These produce clean, grounded
 # traces with citations.
@@ -100,25 +114,40 @@ def ask(client: OpenAI, agent: str, question: str) -> str:
 def main() -> int:
     ap = argparse.ArgumentParser(description="Warm the L11 telemetry pipe.")
     ap.add_argument("--rounds", type=int, default=3)
+    ap.add_argument(
+        "--skip-orchestrator",
+        action="store_true",
+        help="Specialist only. Drops the deliberate 401s, so Query A loses its "
+             "broken-agent row and Query C loses its span failures.",
+    )
     args = ap.parse_args()
 
     client = make_client()
     ok = fail = 0
 
-    print(f"[traffic] agent={SPECIALIST}  rounds={args.rounds}\n")
+    # The specialist answers 3 grounded questions; the orchestrator gets 2. The
+    # asymmetry is deliberate -- it makes the two agents distinguishable at a glance
+    # in Query A's run counts without needing to read the agent name.
+    targets = [(SPECIALIST, 3)]
+    if not args.skip_orchestrator:
+        targets.append((ORCHESTRATOR, 2))
+
+    print(f"[traffic] targets={[name for name, _ in targets]}  rounds={args.rounds}\n")
 
     for r in range(1, args.rounds + 1):
         print(f"--- round {r} ---")
-        for q in GROUNDED[:3]:
-            try:
-                print(f"  [{SPECIALIST}] {q}")
-                print(f"      -> {ask(client, SPECIALIST, q)}...")
-                ok += 1
-            except Exception as exc:                        # noqa: BLE001
-                print(f"      !! {type(exc).__name__}: {str(exc)[:120]}")
-                fail += 1
+        for agent, take in targets:
+            for q in GROUNDED[:take]:
+                try:
+                    print(f"  [{agent}] {q}")
+                    print(f"      -> {ask(client, agent, q)}...")
+                    ok += 1
+                except Exception as exc:                    # noqa: BLE001
+                    print(f"      !! {type(exc).__name__}: {str(exc)[:120]}")
+                    fail += 1
 
-        # One deliberate miss per round so Query C has something to classify.
+        # One deliberate miss per round so Query C has something to classify. Only the
+        # specialist gets it: an unanswerable question needs an agent that can answer.
         for q in UNGROUNDED:
             try:
                 print(f"  [{SPECIALIST}] (expected miss) {q}")

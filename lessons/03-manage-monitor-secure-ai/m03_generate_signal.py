@@ -134,7 +134,7 @@ def main() -> None:
     print("\nFlushing telemetry to Application Insights...")
     trace.get_tracer_provider().force_flush()
 
-    workspace_guid = "aa91adf2-e06f-4ff6-9038-9807cfb8c970"  # log-ai103-l03 (backs appi-ai103-l03)
+    workspace_guid = "<LOG-ANALYTICS-WORKSPACE-ID>"  # log-ai103-l03 (backs appi-ai103-l03)
     print("Done. Traces usually land in 2-5 minutes.\n")
     print("=" * 78)
     print(f"OperationId for THIS run: {trace_id}")

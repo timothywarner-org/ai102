@@ -18,7 +18,7 @@ Reasoning -> `gpt-5.1`. Both already configured.
 
 ## PRE-FLIGHT
 
-- [ ] `az login` -> `tim@techtrainertim.com`
+- [ ] `az login` -> `you@contoso.com`
 - [ ] `pwsh -File validate.ps1` -> green, cache primed
 - [ ] Camtasia **System Audio ON**, levels tested
 - [ ] Edge on Foundry portal (`proj-agents`) | VS Code on the lesson folder

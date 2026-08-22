@@ -1,0 +1,8 @@
+name: contoso/javascript-security-queries
+version: 1.0.0
+description: "Contoso JavaScript security queries for educational purposes"
+authors: "Contoso Security Team"
+license: MIT
+dependencies:
+  codeql/javascript-all: "*"
+extractor: javascript

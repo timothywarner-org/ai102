@@ -23,7 +23,7 @@ Security is a **portal + infrastructure-as-code** job, not an SDK one, so this l
 | **05 -- Zero Trust networking** | private endpoint, managed VNet isolation | Foundry account > Networking | `az cognitiveservices account managed-network show ... --query isolationMode` |
 | **06 -- RBAC (the Azure AI Developer trap)** | assign **Foundry User**, not Azure AI Developer | Access control (IAM) | `infra/modules/observability.bicep`: the `roleAssignments` resource (`guid(...)` name, `principalType`, `subscriptionResourceId(...)`) |
 
-Pre-flight and the full talk track are in the runbook. Deployed lab account: `aif-ai103-mvp-quc6kxy2j2v2q` in `rg-ai103-core`.
+Pre-flight and the full talk track are in the runbook. Deployed lab account: `YOUR-FOUNDRY-RESOURCE` in `rg-ai103-core`.
 
 ---
 Part of the [AI-103 course repository](https://github.com/timothywarner-org/ai103) by Tim Warner.

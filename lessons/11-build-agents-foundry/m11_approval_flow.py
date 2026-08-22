@@ -355,6 +355,9 @@ async def main_async(args: argparse.Namespace) -> int:
             client,
             title="read-only question -> no gate",
             question=f"What is the total on invoice {_REFUND_TARGET}?",
+            # Inert on this path. `lookup_invoice` is never_require, so no gate
+            # fires and nothing ever reads this verdict. It is only here because
+            # run_scenario takes the parameter -- True and False behave the same.
             scripted_verdict=True,
             interactive=args.interactive,
         )

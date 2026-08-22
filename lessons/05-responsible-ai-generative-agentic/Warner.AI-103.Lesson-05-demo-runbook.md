@@ -6,7 +6,7 @@ Read-only demo -- nothing in production is changed; the one thing we create (a c
 
 ## Pre-flight (before recording)
 - Edge open, signed in, two tabs: **ai.azure.com** (Foundry) and **portal.azure.com** (Azure).
-- Foundry project `proj-lesson-05` open on the `aif-ai103-mvp-quc6kxy2j2v2q` account, with the **gpt-5-mini** deployment live -- it's both the app model and the eval **judge** (one deployment; see Segment 2).
+- Foundry project `proj-lesson-05` open on the `YOUR-FOUNDRY-RESOURCE` account, with the **gpt-5-mini** deployment live -- it's both the app model and the eval **judge** (one deployment; see Beat 2).
 - VS Code open on the `ai103` workspace, `m05_evals_demo.py` visible, integrated terminal ready.
 - `az login` done; `.env` filled in; `uv sync` already run in the lesson folder.
 
@@ -18,7 +18,7 @@ Read-only demo -- nothing in production is changed; the one thing we create (a c
 
 ---
 
-## Segment 1: Configure safety filters and content moderation  (LO1, ~3.5 min)
+## Beat 1: Configure safety filters and content moderation  (LO1, ~3.5 min)
 
 [SAY] First control: the content filter, which is your front door for safety. Every Foundry deployment already ships with Microsoft's default filter, but the exam wants you to know you can tighten it. In the portal, under Guardrails and controls, is where content filters live. A filter checks four harm categories -- hate, violence, sexual, and self-harm -- and each one gets a severity score, so I decide how strict to be per category. On top of that, Prompt Shields catch injection attacks, and a blocklist enforces my own banned terms.
 
@@ -35,7 +35,7 @@ Read-only demo -- nothing in production is changed; the one thing we create (a c
 
 ---
 
-## Segment 2: Apply responsible AI instrumentation -- evaluators  (LO2, ~4 min)
+## Beat 2: Apply responsible AI instrumentation -- evaluators  (LO2, ~4 min)
 
 [SAY] Second control: instrumentation. A filter stops the obviously harmful stuff, but it can't tell me whether a good-looking answer is actually grounded in my data or just confidently wrong. That's what evaluators do -- they score quality and safety on real query-and-response pairs. And this is the one place in this lesson where code is genuinely the right surface, because you'll wire these into a pipeline to gate a release, not run them by hand.
 
@@ -57,7 +57,7 @@ Read-only demo -- nothing in production is changed; the one thing we create (a c
 
 ---
 
-## Segment 3: Implement auditing -- trace logging and provenance  (LO3, ~3 min)
+## Beat 3: Implement auditing -- trace logging and provenance  (LO3, ~3 min)
 
 [SAY] Third control: auditing. When something goes wrong in production, "the model said something bad" isn't an incident report -- you need the receipt. Foundry tracing gives you that. It's built on OpenTelemetry, and it streams every step -- the prompt, the tool calls with their arguments, and the final response -- into Application Insights, where it's timestamped and queryable.
 
@@ -74,7 +74,7 @@ Read-only demo -- nothing in production is changed; the one thing we create (a c
 
 ---
 
-## Segment 4: Govern agent behavior -- oversight and tool access  (LO4, ~3 min)
+## Beat 4: Govern agent behavior -- oversight and tool access  (LO4, ~3 min)
 
 [SAY] Fourth control: governance, which is where agentic AI raises the stakes. A chat model returns text, but an agent takes actions -- so the responsible-AI question becomes "what is this thing allowed to do, and who signs off." Two levers. First, scope: an agent should only see the specific tools its job requires, gated by role-based access and an allow-list, never every tool in the tenant. Second, oversight mode: supervised means a human approves every action, semi-autonomous means approval only on the sensitive ones, autonomous means it acts within fixed bounds, and shadow means it suggests while a human still decides.
 

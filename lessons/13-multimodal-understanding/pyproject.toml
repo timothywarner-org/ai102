@@ -1,0 +1,66 @@
+[project]
+name = "ai103-lesson13-multimodal"
+version = "1.0.0"
+description = "AI-103 Lesson 13 demo assets - multimodal understanding workflows (vision chat + Azure Content Understanding)"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{ name = "Tim Warner" }]
+
+dependencies = [
+    # Azure OpenAI vision chat. We use the PLAIN OpenAI client against the
+    # /openai/v1 surface, not AzureOpenAI - see README for why.
+    "openai>=1.68.0",
+
+    # Content Understanding SDK. Went GA targeting API version 2025-11-01 and
+    # ships built-in long-running-operation pollers, which we rely on.
+    # NOTE: 1.1.0 is the newest version actually published to PyPI (verified:
+    # available versions are 1.0.0, 1.0.1, 1.1.0). Some Learn pages reference a
+    # 1.2.0b1 - do NOT pin to it, pip cannot resolve it and the install fails.
+    "azure-ai-contentunderstanding>=1.1.0",
+
+    # AzureCliCredential + get_bearer_token_provider. Keyless everywhere.
+    "azure-identity>=1.19.0",
+
+    # load_dotenv(override=True)
+    "python-dotenv>=1.0.1",
+
+    # Local image inspection: dimensions and size validation before we spend
+    # tokens on an image the service would reject anyway.
+    "pillow>=10.4.0",
+]
+
+[project.optional-dependencies]
+dev = ["ruff>=0.6.0"]
+
+# -----------------------------------------------------------------------------
+# Setup (Windows PowerShell):
+#   python -m venv .venv
+#   .\.venv\Scripts\Activate.ps1
+#   python -m pip install --upgrade pip
+#   python -m pip install -e .
+#
+# Setup (bash):
+#   python -m venv .venv && source .venv/bin/activate
+#   python -m pip install -e .
+#
+# Then:
+#   az login
+#   cp .env.example .env      # edit values
+#   python m13_vision_chat.py --dry-run
+# -----------------------------------------------------------------------------
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+py-modules = [
+    "m13_vision_chat",
+    "m13_cu_analyzer",
+    "m13_cu_video",
+    "m13_agentic_mode",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"

@@ -11,8 +11,8 @@
 
 - Edge signed in: **ai.azure.com** (Foundry) and **portal.azure.com** (Azure).
 - VS Code on the `ai103` workspace, `infra/` folder open, integrated terminal ready, `az login` done.
-- Demo account: `aif-ai103-mvp-quc6kxy2j2v2q` in `rg-ai103-core`.
-- Demo developer persona: **Priya Sharma** (`priya@techtrainertim.com`).
+- Demo account: `YOUR-FOUNDRY-RESOURCE` in `rg-ai103-core`.
+- Demo developer persona: **Priya Sharma** (`priya@contoso.com`).
 
 ---
 
@@ -26,7 +26,7 @@
 
 ---
 
-## Segment 1: Identity and keyless  (~4 min) 🔑
+## Beat 1: Identity and keyless  (~4 min) 🔑
 
 🗣️ **SAY -- the idea**
 
@@ -59,7 +59,7 @@ Open `infra/ai103-core.mvp.bicep`, find the account resource, read the identity 
 
 ---
 
-## Segment 2: Zero Trust networking  (~4 min) 🛡️
+## Beat 2: Zero Trust networking  (~4 min) 🛡️
 
 🗣️ **SAY -- the idea**
 
@@ -80,7 +80,7 @@ Open `infra/ai103-core.mvp.bicep`, find the account resource, read the identity 
 I'll read that same inbound posture from the terminal, because this is what our account-based Foundry actually exposes.
 
 🎬 **DO -- terminal**
-`az cognitiveservices account show -g rg-ai103-core -n aif-ai103-mvp-quc6kxy2j2v2q --query "{publicNetworkAccess:properties.publicNetworkAccess, networkAcls:properties.networkAcls}" -o jsonc`
+`az cognitiveservices account show -g rg-ai103-core -n YOUR-FOUNDRY-RESOURCE --query "{publicNetworkAccess:properties.publicNetworkAccess, networkAcls:properties.networkAcls}" -o jsonc`
 
 ✅ **VERIFY** Prints `publicNetworkAccess: Enabled` and `networkAcls: null` -- public, no IP allow-list. Locked-down target: `Disabled` plus a `networkAcls` default-deny rule.
 
@@ -98,7 +98,7 @@ I'll read that same inbound posture from the terminal, because this is what our 
 
 ---
 
-## Segment 3: RBAC -- the right role, as code  (~4 min) 👤
+## Beat 3: RBAC -- the right role, as code  (~4 min) 👤
 
 🗣️ **SAY -- the trap**
 
@@ -111,13 +111,13 @@ I'll read that same inbound posture from the terminal, because this is what our 
 🎬 **DO -- portal**
 
 - **portal.azure.com** > Foundry resource > **Access control (IAM)** > **Add role assignment**.
-- Role: **Foundry User** > select **Priya Sharma** (`priya@techtrainertim.com`).
+- Role: **Foundry User** > select **Priya Sharma** (`priya@contoso.com`).
 - Hover **Azure AI Developer** to show the bait, but leave it unassigned.
 
 ✅ **VERIFY** Foundry User assignment created for Priya Sharma.
 
 🗣️ **SAY -- same thing as one command**
-`az role assignment create --role "Foundry User" --assignee priya@techtrainertim.com --scope /subscriptions/92fd53f2-c38e-461a-9f50-e1ef3382c54c/resourceGroups/rg-ai103-core/providers/Microsoft.CognitiveServices/accounts/aif-ai103-mvp-quc6kxy2j2v2q`
+`az role assignment create --role "Foundry User" --assignee priya@contoso.com --scope /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-ai103-core/providers/Microsoft.CognitiveServices/accounts/YOUR-FOUNDRY-RESOURCE`
 
 🗣️ **SAY -- now read the Bicep (don't skim this)**
 

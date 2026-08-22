@@ -7,10 +7,29 @@ list (April 16, 2026).
 
 ---
 
+## 0. Read this first if you have used LangGraph or the Anthropic API
+
+The five patterns below are **not** a new theory of orchestration. They are five prebuilt
+shapes for a loop you would otherwise write yourself. The plain-English mapping:
+
+| You already know | Agent Framework calls it | What actually changed |
+| --- | --- | --- |
+| A LangGraph `StateGraph` where you add nodes and edges | A **workflow** built by `HandoffBuilder`, `SequentialBuilder`, etc. | You pick a prebuilt edge topology instead of drawing edges yourself |
+| LangGraph conditional edges, where your router function returns the next node name | **Handoff**, where the *model* picks the next agent by calling a hidden handoff tool | The routing decision moved from your Python into a model tool call |
+| A LangGraph `TypedDict` state you thread through nodes | The shared **conversation history**, broadcast to every participant | State is a message list, not a dict you designed |
+| An Anthropic `tool_use` loop you write by hand | The **executor** running the loop for you | You lose the hand-written `while` loop and gain a place to hang approval gates |
+
+One sentence for the whole lesson: **in LangGraph your code decides who runs next, and in
+Handoff the model decides who runs next by calling a tool you never see.**
+
+---
+
 ## 1. The five built-in patterns (pick-the-pattern slide)
 
 Exam-relevant framing: AI-103 LO4 says "implement orchestrated multi-agent solutions." The
 exam expects you to **choose** the right pattern, so this is the decision slide.
+
+Read each branch as: **coordination style, then the job it fits.**
 
 ```mermaid
 flowchart TB
@@ -43,6 +62,10 @@ teaching case because the routing decision is visible on every single turn.
 ## 2. What L11 actually builds
 
 Three specialists behind one front door, in `m11_multi_agent.py`.
+
+Read it as a story: the customer asks once, **triage** decides who owns the question,
+that one specialist answers, and the run stops. Solid arrows are the conversation moving.
+Dashed arrows are ordinary model calls to Foundry.
 
 ```mermaid
 flowchart LR
@@ -84,34 +107,42 @@ again. They answer and stop.
 
 ## 3. The correction worth making on camera
 
-The picture above is the **logical routing view**. The docs are explicit that handoff is
-implemented as a **mesh with no central orchestrator**, and that every participant broadcasts
-its response so all agents keep a consistent conversation history.
+The picture above is the **logical routing view**: who ends up answering. It is not the wiring.
+
+The docs are explicit that handoff is implemented as a **mesh with no central orchestrator**,
+and that every participant broadcasts its response so all agents keep a consistent conversation
+history.
+
+**Why this trips up LangGraph people.** In LangGraph you can point at the supervisor node and
+say "that is the router." Here there is no such node. Every agent is handed a set of hidden
+handoff tools, one per agent it is allowed to pass to, and "routing" is just that agent choosing
+to call one. The mesh in the right-hand box is who is *allowed* to pass to whom, not traffic
+that actually flows on every turn.
 
 ```mermaid
 flowchart TB
-    subgraph wrong["Mental model most people arrive with"]
+    subgraph wrong["NOT this: a central router owns the flow"]
         direction TB
-        O(["Orchestrator"])
+        O(["Orchestrator<br/><i>your code picks next</i>"])
         A1["agent A"]
         A2["agent B"]
         A3["agent C"]
-        O --> A1
-        O --> A2
-        O --> A3
-        A1 --> O
-        A2 --> O
-        A3 --> O
+        O -->|"dispatch"| A1
+        O -->|"dispatch"| A2
+        O -->|"dispatch"| A3
+        A1 -->|"control returns"| O
+        A2 -->|"control returns"| O
+        A3 -->|"control returns"| O
     end
 
-    subgraph right["How Handoff actually works"]
+    subgraph right["THIS: peers, each free to pass to any other"]
         direction TB
         B1["<b>triage</b>"]
         B2["<b>billing</b>"]
         B3["<b>support</b>"]
-        B1 <-->|"context broadcast"| B2
-        B2 <-->|"context broadcast"| B3
-        B1 <-->|"context broadcast"| B3
+        B1 <-->|"may hand off to,<br/>shares history"| B2
+        B2 <-->|"may hand off to,<br/>shares history"| B3
+        B1 <-->|"may hand off to,<br/>shares history"| B3
     end
 
     wrong ~~~ right
@@ -132,6 +163,12 @@ to it. In handoff, the receiving agent takes **full ownership** of the task.
 ## 4. LO5 -- where the approval gate sits
 
 This is `m11_approval_flow.py`. The gate is on the executor, not in the prompt.
+
+**In one line:** the model asks to run a tool, the framework pauses *before* the function body
+runs, a human says yes or no, and only then does the code execute. If you have written an
+Anthropic `tool_use` loop, this is the moment where you would have inserted your own `input()`
+before dispatching the tool. Agent Framework gives you that pause as a declared parameter
+instead of hand-rolled loop logic.
 
 ```mermaid
 sequenceDiagram
@@ -172,6 +209,21 @@ Risk-tier the tools rather than gating everything:
 ---
 
 ## 5. LO6 -- why one operation_Id makes this observable
+
+**The plain version.** Every unit of work the framework does emits one **span**, which is just a
+timestamped row saying "this thing ran, and it took this long." One customer request produces a
+pile of those rows across three agents. They all carry the same **`operation_Id`**, a shared
+correlation ID stamped on everything in one request. Group the rows by that ID and you have
+reassembled the whole request from the pieces.
+
+The span names are the vocabulary you query on:
+
+| Span name | Emitted when |
+| --- | --- |
+| `workflow.run` | The whole request starts |
+| `executor.process` | One agent takes its turn |
+| `invoke_agent` | An agent calls the model |
+| `execute_tool` | A tool function actually runs |
 
 ```mermaid
 flowchart LR
