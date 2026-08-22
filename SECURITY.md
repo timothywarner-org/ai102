@@ -12,7 +12,7 @@ This repository is part of the AI-103: Designing and Implementing an Azure AI So
 
 ## Reporting Real Vulnerabilities
 
-If you discover a real, non-intentional security vulnerability in this repository (e.g., a secret accidentally committed, or a risk not clearly marked as intentional), please report it by opening a [GitHub Security Advisory](https://github.com/timothywarner-org/ai102-1/security/advisories/new) or contacting the repository maintainers directly.
+If you discover a real, non-intentional security vulnerability in this repository (e.g., a secret accidentally committed, or a risk not clearly marked as intentional), please report it by opening a [GitHub Security Advisory](https://github.com/timothywarner-org/ai103/security/advisories/new) or contacting the repository maintainers directly.
 
 ## Disclaimer
 
