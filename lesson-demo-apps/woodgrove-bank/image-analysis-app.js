@@ -141,7 +141,6 @@ app.get('/', (req, res) => {
       <link rel="stylesheet" href="/branding/customcss.css">
       <link rel="icon" type="image/png" href="/branding/favicon.png">
       <!-- Microsoft Fonts: Segoe UI Variable, Segoe UI, fallback -->
-      <link rel="stylesheet" href="https://static2.sharepointonline.com/files/fabric/assets/fonts/segoe-ui-variable/segoe-ui-variable.css">
       <!-- Prism.js for syntax highlighting -->
       <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css">
       <style>
@@ -345,7 +344,6 @@ app.post('/', upload.single('imageFile'), async (req, res) => {
         <link rel="stylesheet" href="/branding/customcss.css">
         <link rel="icon" type="image/png" href="/branding/favicon.png">
         <!-- Microsoft Fonts: Segoe UI Variable, Segoe UI, fallback -->
-        <link rel="stylesheet" href="https://static2.sharepointonline.com/files/fabric/assets/fonts/segoe-ui-variable/segoe-ui-variable.css">
         <!-- Prism.js for syntax highlighting -->
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css">
         <style>

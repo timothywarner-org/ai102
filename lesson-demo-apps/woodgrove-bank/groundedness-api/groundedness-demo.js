@@ -1,5 +1,5 @@
 const readline = require('readline');
-require('dotenv').config();
+require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') }); // woodgrove-bank/.env, wherever you run this from
 const axios = require('axios');
 const chalk = require('chalk');
 

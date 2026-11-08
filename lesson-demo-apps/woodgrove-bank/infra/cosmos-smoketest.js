@@ -1,7 +1,7 @@
 // Woodgrove Bank AI-102 Cosmos DB Smoke Test
 // SHINE: Progress metering, robust error handling, and teaching comments
 
-require('dotenv').config();
+require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') }); // woodgrove-bank/.env, wherever you run this from
 const { CosmosClient } = require('@azure/cosmos');
 
 const endpoint = process.env.COSMOS_URI;
@@ -33,7 +33,7 @@ async function main() {
     const item = {
       id: 'dog-20240601-001',
       filename: 'dog.jpg',
-      url: 'https://techtrainertimstorage.blob.core.windows.net/demos/dog.jpg',
+      url: 'https://raw.githubusercontent.com/Azure-Samples/cognitive-services-sample-data-files/master/ComputerVision/Images/dog.jpg',
       uploadedBy: 'tim.warner',
       uploadDate: new Date().toISOString(),
       correlationId: 'demo-corr-1234',

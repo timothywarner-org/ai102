@@ -21,6 +21,12 @@ Date: May 7, 2025
 """
 
 import os
+try:
+    # Read settings from the .env file next to this script (copy .env.example to .env first).
+    from dotenv import load_dotenv
+    load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env"))
+except ImportError:
+    pass  # python-dotenv not installed: regular environment variables still work
 import sys
 import json
 import logging

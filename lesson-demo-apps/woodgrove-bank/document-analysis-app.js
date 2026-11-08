@@ -14,7 +14,7 @@ const PORT = process.env.PORT || 3004;
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } }); // 10MB max
 
 // Demo mode sample public document URL (Azure sample invoice)
-const DEMO_URL = 'https://raw.githubusercontent.com/Azure-Samples/azure-ai-services-samples/main/samples/sample-forms/invoice/sample-invoice.pdf';
+const DEMO_URL = 'https://raw.githubusercontent.com/Azure-Samples/cognitive-services-REST-api-samples/master/curl/form-recognizer/sample-invoice.pdf';
 
 // Idempotent startup: kill any process on PORT
 function cleanupPort() {

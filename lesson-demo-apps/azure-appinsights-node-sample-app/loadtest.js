@@ -9,6 +9,7 @@
  * - Designed for hands-on demos and workshops to showcase monitoring and observability.
  */
 // Simple load generator for Express App Insights demo
+require('dotenv').config(); // BASE_URL, TOTAL_REQUESTS, CONCURRENCY from .env
 const axios = require('axios');
 
 const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';

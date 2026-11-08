@@ -5,12 +5,12 @@
 
 <p align="center">
   <a href="https://TechTrainerTim.com"><img src="https://img.shields.io/badge/Website-TechTrainerTim.com-1e90ff?logo=google-chrome&logoColor=white" alt="TechTrainerTim.com"></a>
-  <a href="https://www.youtube.com/c/TechTrainerTim"><img src="https://img.shields.io/badge/YouTube-Subscribe-ff0000?logo=youtube&logoColor=white" alt="YouTube"></a>
+  <a href="https://www.youtube.com/@TechTrainerTim"><img src="https://img.shields.io/badge/YouTube-Subscribe-ff0000?logo=youtube&logoColor=white" alt="YouTube"></a>
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-brightgreen?logo=open-source-initiative&logoColor=white" alt="MIT License"></a>
   <a href="https://www.linkedin.com/in/timothywarner"><img src="https://img.shields.io/badge/LinkedIn-timothywarner-0077b5?logo=linkedin&logoColor=white" alt="LinkedIn"></a>
   <a href="https://discord.com/users/timwarner1"><img src="https://img.shields.io/badge/Discord-timwarner1-5865F2?logo=discord&logoColor=white" alt="Discord"></a>
   <a href="https://mvp.microsoft.com/en-US/mvp/profile/e9a13bca-2798-4247-be56-f116f780869d"><img src="https://img.shields.io/badge/Microsoft%20MVP-2024-blueviolet?logo=microsoft&logoColor=white" alt="Microsoft MVP Profile"></a>
-  <a href="https://github.com/timothywarner-org/ai102/security/dependabot"><img src="https://img.shields.io/badge/Dependabot-enabled-brightgreen?logo=dependabot" alt="Dependabot Status"></a>
+  <a href="https://github.com/timothywarner-org/ai102/blob/main/.github/dependabot.yml"><img src="https://img.shields.io/badge/Dependabot-enabled-brightgreen?logo=dependabot" alt="Dependabot Status"></a>
 </p>
 
 # AI-102: Designing and Implementing a Microsoft Azure AI Solution
@@ -63,7 +63,8 @@ This course covers **20 lessons**—each with hands-on code, demos, and real-wor
    `git clone https://github.com/timothywarner-org/ai102.git`
 2. **Review the [Course Outline](#course-structure)** above or in [`/lessons/README.md`](./lessons/README.md)
 3. **Set up your environment:**  
-   Copy `.env.sample` to `.env` and fill in your Azure keys (never commit secrets!)
+   Each demo folder has its own template (`.env.sample` or `.env.example`). Copy it to `.env`
+   in that same folder and fill in your Azure values. `.env` is gitignored, so your keys stay on your machine.
 4. **Explore lesson folders:**  
    Each lesson has its own folder with code, README, and setup instructions.
 5. **Run the code:**  

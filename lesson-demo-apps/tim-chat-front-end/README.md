@@ -14,15 +14,15 @@ A modern, educational chat application built with Node.js and Azure OpenAI, desi
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/tim-chat-front-end.git
-   cd tim-chat-front-end
+   git clone https://github.com/timothywarner-org/ai102.git
+   cd ai102/lesson-demo-apps/tim-chat-front-end
    ```
 
-2. Create a `.env` file based on `.env.sample` with your Azure OpenAI credentials:
+2. Copy `.env.sample` to `.env` and fill in your Azure OpenAI values:
    ```env
-   AZURE_OPENAI_API_KEY=your_key_here
-   AZURE_OPENAI_ENDPOINT=your_endpoint_here
-   AZURE_OPENAI_DEPLOYMENT=your_deployment_here
+   AZURE_OPENAI_ENDPOINT=https://<your-resource-name>.openai.azure.com/
+   AZURE_OPENAI_KEY=your_key_here
+   AZURE_OPENAI_MODEL=your_deployment_name_here
    ```
 
 3. Start the application:

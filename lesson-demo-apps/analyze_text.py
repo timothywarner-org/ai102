@@ -13,6 +13,17 @@ except ImportError:
     from azure.core.credentials import AzureKeyCredential
     from azure.ai.contentsafety.models import AnalyzeTextOptions
 
+try:
+    from dotenv import load_dotenv
+except ImportError:
+    print("Required package not found. Installing python-dotenv...")
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "python-dotenv"])
+    from dotenv import load_dotenv
+
+# Read CONTENT_SAFETY_ENDPOINT and CONTENT_SAFETY_API_KEY from the .env file next to this script.
+# Copy .env.example to .env and fill in your values; never hardcode keys in code.
+load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env"))
+
 
 def clear_terminal() -> None:
     """Clear the terminal screen."""

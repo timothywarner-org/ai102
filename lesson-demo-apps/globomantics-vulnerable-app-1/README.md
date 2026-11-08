@@ -259,7 +259,7 @@ codeql database analyze js-db ../globomantics-secure-scan/queries/javascript/det
 
 1. **Basics**: [Introduction to CodeQL](https://codeql.github.com/docs/codeql-overview/)
 2. **Query Language**: [Learning CodeQL](https://codeql.github.com/docs/writing-codeql-queries/)
-3. **Advanced**: [Creating custom queries](https://codeql.github.com/docs/writing-codeql-queries/advanced-topics/)
+3. **Advanced**: [Creating custom queries](https://codeql.github.com/docs/writing-codeql-queries/)
 
 ### OWASP References
 

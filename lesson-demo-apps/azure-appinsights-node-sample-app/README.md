@@ -29,7 +29,7 @@ This is a simple Node.js Express web app instrumented with Azure Application Ins
    npm install
    ```
 3. **Configure environment variables:**
-   Create a `.env` file with your Application Insights Instrumentation Key:
+   Copy `.env.example` to `.env` and add your Application Insights Instrumentation Key:
    ```env
    InstrumentationKey=YOUR_APP_INSIGHTS_KEY
    # Optional: LOG_ANALYTICS_WORKSPACE_ID=...

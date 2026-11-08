@@ -177,3 +177,8 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# Env templates are learner material: keep them in the repo even when a global
+# gitignore hides .env.* files. Your real .env (with your keys) stays ignored above.
+!.env.example
+!.env.sample

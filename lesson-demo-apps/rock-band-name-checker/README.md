@@ -82,13 +82,14 @@ rock-band-name-checker/
 
 ## Configuration
 
-Set the following environment variables:
+Copy `.env.example` to `.env` in this folder and fill in your values (or set them as environment variables):
 
 ```
 CONTENT_SAFETY_API_KEY=your_content_safety_api_key
 CONTENT_SAFETY_ENDPOINT=https://<your-content-safety-resource>.cognitiveservices.azure.com/
 LOG_ANALYTICS_WORKSPACE_ID=<your-log-analytics-workspace-id>
-APPINSIGHTS_INSTRUMENTATIONKEY=your_app_insights_key (optional)
+LOG_ANALYTICS_SHARED_KEY=your_log_analytics_primary_key
+APP_INSIGHTS_CONNECTION_STRING=your_app_insights_connection_string (optional)
 ENVIRONMENT=development|test|production (optional, defaults to development)
 ```
 

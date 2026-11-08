@@ -13,11 +13,11 @@ const app = express();
 const PORT = process.env.PORT || 3003;
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } }); // 5MB max
 
-// Demo mode sample Azure Blob Storage URLs
+// Demo mode: public sample images from Microsoft (Azure-Samples/cognitive-services-sample-data-files)
 const DEMO_URLS = [
-  'https://learnopenaicdn.blob.core.windows.net/vision-sample-images/landmark.jpg',
-  'https://learnopenaicdn.blob.core.windows.net/vision-sample-images/receipt.jpg',
-  'https://learnopenaicdn.blob.core.windows.net/vision-sample-images/woodgrove-logo.png'
+  'https://raw.githubusercontent.com/Azure-Samples/cognitive-services-sample-data-files/master/ComputerVision/Images/landmark.jpg',
+  'https://raw.githubusercontent.com/Azure-Samples/cognitive-services-sample-data-files/master/ComputerVision/Images/printed_text.jpg',
+  'https://raw.githubusercontent.com/Azure-Samples/cognitive-services-sample-data-files/master/ComputerVision/Images/gray-shirt-logo.jpg'
 ];
 
 // Idempotent startup: kill any process on PORT

@@ -204,7 +204,7 @@ Completion: ${resultMessage.token_usage.completion_tokens} tokens
 Total: ${resultMessage.token_usage.total_tokens} tokens
 Cost: ${tokenCost}`,
             relatedLinks: [
-              'https://learn.microsoft.com/azure/ai-services/openai/concepts/tokens'
+              'https://learn.microsoft.com/azure/ai-foundry/openai/overview#key-concepts'
             ]
           });
         }
@@ -245,7 +245,7 @@ Cost: ${tokenCost}`,
           resources.push({
             title: 'Azure OpenAI Cookbook',
             description: 'Collection of examples and best practices',
-            url: 'https://github.com/Azure/azure-openai-samples',
+            url: 'https://github.com/Azure-Samples/openai',
             type: 'tutorial' as const
           });
         }

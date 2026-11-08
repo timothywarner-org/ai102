@@ -21,35 +21,35 @@ const propertyMaps = {
       path: 'objects[0].object',
       description: 'Detected object in the image.',
       range: 'String',
-      doc: 'https://learn.microsoft.com/en-us/azure/ai-services/computer-vision/overview-object-detection'
+      doc: 'https://learn.microsoft.com/en-us/azure/ai-services/computer-vision/concept-object-detection-40'
     },
     {
       name: 'Object Confidence',
       path: 'objects[0].confidence',
       description: 'Model confidence in the object.',
       range: '0.0–1.0',
-      doc: 'https://learn.microsoft.com/en-us/azure/ai-services/computer-vision/overview-object-detection'
+      doc: 'https://learn.microsoft.com/en-us/azure/ai-services/computer-vision/concept-object-detection-40'
     },
     {
       name: 'Adult Score',
       path: 'adult.adultScore',
       description: 'Probability of adult content.',
       range: '0.0–1.0 (0=safe, 1=unsafe)',
-      doc: 'https://learn.microsoft.com/en-us/azure/ai-services/computer-vision/how-to/vision-api-image-moderation'
+      doc: 'https://learn.microsoft.com/en-us/azure/ai-services/content-safety/quickstart-image'
     },
     {
       name: 'Is Adult Content',
       path: 'adult.isAdultContent',
       description: 'Adult content detected?',
       range: 'true/false',
-      doc: 'https://learn.microsoft.com/en-us/azure/ai-services/computer-vision/how-to/vision-api-image-moderation'
+      doc: 'https://learn.microsoft.com/en-us/azure/ai-services/content-safety/quickstart-image'
     },
     {
       name: 'OCR Text',
       path: 'ocrText',
       description: 'Extracted text from the image.',
       range: 'String',
-      doc: 'https://learn.microsoft.com/en-us/azure/ai-services/computer-vision/how-to/ocr'
+      doc: 'https://learn.microsoft.com/en-us/azure/ai-services/computer-vision/overview-ocr'
     }
   ],
   'document-intelligence': [
@@ -58,28 +58,28 @@ const propertyMaps = {
       path: 'keyValuePairs',
       description: 'Extracted fields and values from the document.',
       range: 'Array of {key, value}',
-      doc: 'https://learn.microsoft.com/en-us/azure/ai-services/document-intelligence/concept-key-value-pairs'
+      doc: 'https://learn.microsoft.com/en-us/azure/ai-services/document-intelligence/concept/analyze-document-response'
     },
     {
       name: 'Tables',
       path: 'tables',
       description: 'Extracted tables from the document.',
       range: 'Array of tables (rows, columns, cells)',
-      doc: 'https://learn.microsoft.com/en-us/azure/ai-services/document-intelligence/concept-tables'
+      doc: 'https://learn.microsoft.com/en-us/azure/ai-services/document-intelligence/prebuilt/layout'
     },
     {
       name: 'Document Type',
       path: 'docType',
       description: 'Type of document detected (e.g., invoice, receipt).',
       range: 'String',
-      doc: 'https://learn.microsoft.com/en-us/azure/ai-services/document-intelligence/concept-document-types'
+      doc: 'https://learn.microsoft.com/en-us/azure/ai-services/document-intelligence/model-overview'
     },
     {
       name: 'Confidence',
       path: 'confidence',
       description: 'Model confidence in extraction.',
       range: '0.0–1.0',
-      doc: 'https://learn.microsoft.com/en-us/azure/ai-services/document-intelligence/concept-confidence-scores'
+      doc: 'https://learn.microsoft.com/en-us/azure/ai-services/document-intelligence/concept/accuracy-confidence'
     }
   ]
 };

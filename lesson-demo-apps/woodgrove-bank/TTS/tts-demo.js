@@ -17,6 +17,7 @@
  * Date: May 14, 2025
  */
 
+require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') }); // woodgrove-bank/.env, wherever you run this from
 const sdk = require('microsoft-cognitiveservices-speech-sdk');
 const fs = require('fs');
 const { DefaultAzureCredential } = require('@azure/identity');

@@ -126,4 +126,4 @@ The script includes robust error handling for all asynchronous operations, ensur
 
 - [AI-102 Certification Guide](https://learn.microsoft.com/certifications/exams/ai-102)
 
-- [Azure AI Engineer Job Role Overview](https://learn.microsoft.com/azure/architecture/roles/ai-engineer/)
+- [Microsoft Certified: Azure AI Engineer Associate](https://learn.microsoft.com/en-us/credentials/certifications/azure-ai-engineer/)
