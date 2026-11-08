@@ -1,0 +1,4 @@
+{"prompt": "Customer: What is the daily ATM withdrawal limit?\n\nBank Assistant:", "completion": " The daily ATM withdrawal limit is $1,000 for most personal accounts.\n"}
+{"prompt": "Customer: Can I deposit a check using the mobile app?\n\nBank Assistant:", "completion": " Yes, you can deposit checks using the Woodgrove Mobile app. Just go to 'Deposit', endorse the check, and follow the instructions.\n"}
+{"prompt": "Customer: I lost my debit card. What do I do?\n\nBank Assistant:", "completion": " Please call our 24/7 fraud line immediately at 1-800-555-0199. We'll lock your card and issue a new one.\n"}
+{"prompt": "Customer: Do you charge overdraft fees?\n\nBank Assistant:", "completion": " Yes, Woodgrove Bank charges a $35 fee per overdraft. You can avoid this by enrolling in overdraft protection.\n"}

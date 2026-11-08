@@ -1,0 +1,3 @@
+azure-ai-contentsafety==1.0.0
+opencensus-ext-azure==1.1.9
+opencensus-ext-logging==0.1.0

@@ -1,0 +1,8 @@
+name: globomantics/javascript-security-queries
+version: 1.0.0
+dependencies:
+  # Latest CodeQL JavaScript library for query development
+  codeql/javascript-all: "*"
+  # Import standard query libraries
+  codeql/javascript-queries: "*"
+library: false 

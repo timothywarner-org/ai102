@@ -1,0 +1,39 @@
+.title {
+  color: #323130;
+  margin-bottom: 20px;
+}
+
+.section {
+  margin: 20px 0;
+  width: 100%;
+}
+
+.codeInput {
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 14px !important;
+  line-height: 1.5 !important;
+}
+
+.codeInput textarea {
+  font-family: 'JetBrains Mono', monospace !important;
+  padding: 12px !important;
+  background-color: #ffffff !important;
+}
+
+.error {
+  color: #d13438 !important;
+}
+
+.error pre {
+  border: 1px solid #d13438 !important;
+}
+
+@media (max-width: 480px) {
+  .section {
+    margin: 10px 0;
+  }
+  
+  .codeInput textarea {
+    font-size: 12px !important;
+  }
+} 

@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <link rel="icon" type="image/x-icon" href="/static/assets/favicon.ico" />
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tim's Chat</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/assets/index-65ec62ea.css">
+    <!-- Add Prism CSS and JS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/toolbar/prism-toolbar.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/toolbar/prism-toolbar.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/copy-to-clipboard/prism-copy-to-clipboard.min.js"></script>
+    <style>
+      /* Colorblind-friendly theme overrides */
+      :root {
+        --syntax-blue: #7AB2F4;      /* Light blue - for functions, keywords */
+        --syntax-yellow: #E7D37A;    /* Soft yellow - for strings */
+        --syntax-purple: #B39DDB;    /* Purple - for numbers, booleans */
+        --syntax-orange: #FFAB70;    /* Orange - for variables */
+        --syntax-gray: #A0A0A0;      /* Gray - for comments */
+        --syntax-white: #FFFFFF;     /* White - for plain text */
+      }
+
+      code[class*="language-"],
+      pre[class*="language-"] {
+        font-family: var(--font-mono);
+        background: #1E1E1E;
+        color: var(--syntax-white);
+        text-shadow: none;
+      }
+
+      .token.comment { color: var(--syntax-gray); }
+      .token.string { color: var(--syntax-yellow); }
+      .token.number { color: var(--syntax-purple); }
+      .token.boolean { color: var(--syntax-purple); }
+      .token.function { color: var(--syntax-blue); }
+      .token.keyword { color: var(--syntax-blue); }
+      .token.property { color: var(--syntax-orange); }
+
+      /* Style the copy button */
+      div.code-toolbar > .toolbar {
+        opacity: 1;
+      }
+
+      div.code-toolbar > .toolbar > .toolbar-item > button {
+        font-family: var(--font-primary);
+        background: rgba(255, 255, 255, 0.1);
+        color: #fff;
+        padding: 6px 12px;
+        border-radius: var(--radius-sm);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+
+      div.code-toolbar > .toolbar > .toolbar-item > button:hover {
+        background: rgba(255, 255, 255, 0.2);
+      }
+    </style>
+    <script>
+      // Fetch frontend settings
+      fetch('/frontend_settings')
+        .then(res => res.json())
+        .then(data => {
+          document.title = "Tim's Chat";
+          document.getElementById('logo').src = "/static/assets/chat-logo.svg";
+        });
+
+      // Handle chat submission
+      async function handleSubmit(e) {
+        e.preventDefault();
+        const input = document.getElementById('chat-input');
+        const messages = document.getElementById('messages');
+        const learningPanel = document.getElementById('learning-panel');
+        const text = input.value.trim();
+        
+        if (!text) return;
+
+        // Add user message
+        const userDiv = document.createElement('div');
+        userDiv.className = 'message user';
+        userDiv.textContent = text;
+        messages.appendChild(userDiv);
+        messages.scrollTop = messages.scrollHeight;
+        
+        // Update learning panel with request info
+        updateLearningPanel('request', {
+          endpoint: '/conversation',
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: { messages: [{ role: 'user', content: text }] }
+        });
+        
+        input.value = '';
+        input.disabled = true;
+        document.getElementById('submit-btn').disabled = true;
+
+        try {
+          const response = await fetch('/conversation', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              messages: [{ role: 'user', content: text }]
+            })
+          });
+
+          const assistantDiv = document.createElement('div');
+          assistantDiv.className = 'message assistant';
+          messages.appendChild(assistantDiv);
+
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder();
+          let fullResponse = '';
+
+          while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+            
+            const chunk = decoder.decode(value);
+            const lines = chunk.split('\n');
+            
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                const data = JSON.parse(line.slice(5));
+                assistantDiv.textContent += data.choices[0].delta.content;
+                fullResponse += data.choices[0].delta.content;
+                messages.scrollTop = messages.scrollHeight;
+              }
+            }
+          }
+
+          // Update learning panel with response info
+          updateLearningPanel('response', {
+            status: response.status,
+            statusText: response.statusText,
+            content: fullResponse
+          });
+
+        } catch (error) {
+          console.error('Chat error:', error);
+          const errorDiv = document.createElement('div');
+          errorDiv.className = 'message error';
+          errorDiv.textContent = 'Sorry, something went wrong. Please try again.';
+          messages.appendChild(errorDiv);
+          
+          // Update learning panel with error info
+          updateLearningPanel('error', {
+            error: error.message,
+            type: error.name,
+            stack: error.stack
+          });
+        } finally {
+          input.disabled = false;
+          document.getElementById('submit-btn').disabled = false;
+          input.focus();
+        }
+      }
+
+      function updateLearningPanel(type, data) {
+        const learningPanel = document.getElementById('learning-panel');
+        const content = document.createElement('div');
+        content.className = 'learning-section';
+        
+        switch (type) {
+          case 'request':
+            content.innerHTML = `
+              <h3>🚀 API Request</h3>
+              <pre class="language-json"><code>${JSON.stringify(data, null, 2)}</code></pre>
+              <div class="learning-note">
+                <p>This shows the actual API request being sent to Azure OpenAI.
+                Notice how we structure the messages array and set the proper headers.</p>
+              </div>
+            `;
+            break;
+          
+          case 'response':
+            content.innerHTML = `
+              <h3>✨ API Response</h3>
+              <pre class="language-json"><code>{
+  "status": ${data.status},
+  "statusText": "${data.statusText}",
+  "content": ${JSON.stringify(data.content, null, 2)}
+}</code></pre>
+              <div class="learning-note">
+                <p>The response is streamed in chunks for real-time display.
+                Each chunk contains a piece of the AI's response.</p>
+              </div>
+            `;
+            break;
+          
+          case 'error':
+            content.innerHTML = `
+              <h3>❌ Error Details</h3>
+              <pre class="language-json"><code>${JSON.stringify(data, null, 2)}</code></pre>
+              <div class="learning-note">
+                <p>Understanding errors helps us build more robust applications.
+                Always implement proper error handling in production!</p>
+              </div>
+            `;
+            break;
+        }
+        
+        // Keep only the last 3 sections
+        while (learningPanel.children.length >= 3) {
+          learningPanel.removeChild(learningPanel.firstChild);
+        }
+        
+        learningPanel.appendChild(content);
+        content.scrollIntoView({ behavior: 'smooth' });
+        
+        // Highlight the new code blocks
+        Prism.highlightAllUnder(content);
+      }
+
+      // Initialize empty state
+      document.addEventListener('DOMContentLoaded', () => {
+        const messages = document.getElementById('messages');
+        const learningPanel = document.getElementById('learning-panel');
+        
+        if (!messages.hasChildNodes()) {
+          const emptyState = document.createElement('div');
+          emptyState.className = 'empty-state';
+          emptyState.innerHTML = `
+            <h2>Welcome to Tim's Chat!</h2>
+            <p>Ask me anything about Azure OpenAI, cloud development, or any technical topic. I'm here to help you learn and explore.</p>
+          `;
+          messages.appendChild(emptyState);
+          
+          // Add initial learning panel content
+          const initialContent = document.createElement('div');
+          initialContent.className = 'learning-section';
+          initialContent.innerHTML = `
+            <h3>👋 Welcome to the Learning Panel!</h3>
+            <div class="learning-note">
+              <p>This panel will show you what's happening behind the scenes as you chat.
+              You'll see API requests, responses, and helpful explanations about how everything works.</p>
+              <p>Here's an example of what you'll see:</p>
+            </div>
+            <pre class="language-javascript"><code>// Example API request
+fetch('/conversation', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    messages: [
+      { role: 'user', content: 'Hello!' }
+    ]
+  })
+});</code></pre>
+          `;
+          learningPanel.appendChild(initialContent);
+          
+          // Highlight the initial code block
+          Prism.highlightAllUnder(initialContent);
+        }
+      });
+    </script>
+  </head>
+  <body>
+    <div class="app-container">
+      <div class="chat-container">
+        <div class="chat-header">
+          <img id="logo" src="/static/assets/chat-logo.svg" alt="Chat Logo" crossorigin="anonymous">
+          <h1>Tim's Chat</h1>
+        </div>
+        <div id="messages" class="messages"></div>
+        <div class="input-container">
+          <form onsubmit="handleSubmit(event)" class="input-form">
+            <input 
+              id="chat-input" 
+              type="text" 
+              placeholder="Type your message..." 
+              autocomplete="off"
+              autofocus
+            >
+            <button id="submit-btn" type="submit">Send</button>
+          </form>
+        </div>
+      </div>
+      <div class="learning-container">
+        <div class="learning-header">
+          <h2>Learning Panel</h2>
+          <p>Watch and learn as we interact with Azure OpenAI</p>
+        </div>
+        <div id="learning-panel" class="learning-panel"></div>
+      </div>
+    </div>
+  </body>
+</html>

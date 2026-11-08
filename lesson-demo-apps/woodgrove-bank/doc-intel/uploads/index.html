@@ -1,0 +1,282 @@
+<!-- [>> CODE START <<] Woodgrove Bank Receipt Uploader UI
+     - Drag-and-drop upload box
+     - Upload button
+     - Results card
+     - Professional, minimal, and annotated for teaching/demo -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Woodgrove Bank Receipt Analyzer</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <style>
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: #f0f2f5;
+      color: #323130;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: white;
+      padding: 24px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 24px;
+      gap: 12px;
+    }
+    .header img {
+      width: 48px;
+      height: 48px;
+      object-fit: contain;
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 24px;
+      font-weight: 600;
+      color: #0078d4;
+    }
+    .upload-box {
+      border: 2px dashed #d1d1d1;
+      border-radius: 8px;
+      padding: 40px;
+      text-align: center;
+      cursor: pointer;
+      margin-bottom: 24px;
+      transition: all 0.2s;
+    }
+    .upload-box:hover {
+      border-color: #0078d4;
+      background: #f8f8f8;
+    }
+    .receipt-details {
+      background: #f8f9fa;
+      padding: 20px;
+      border-radius: 6px;
+      margin-top: 20px;
+    }
+    .receipt-details h2 {
+      margin-top: 0;
+      color: #323130;
+      font-size: 20px;
+      margin-bottom: 16px;
+    }
+    .receipt-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .receipt-table td {
+      padding: 8px 0;
+      border-bottom: 1px solid #e1e1e1;
+    }
+    .receipt-table tr:last-child td {
+      border-bottom: none;
+    }
+    .receipt-table td:first-child {
+      font-weight: 600;
+      color: #605e5c;
+      width: 30%;
+    }
+    .receipt-table td:last-child {
+      color: #323130;
+      text-align: right;
+    }
+    .items-list {
+      margin-top: 8px;
+      padding-left: 20px;
+    }
+    .items-list div {
+      margin: 4px 0;
+      color: #323130;
+    }
+    .footer {
+      text-align: center;
+      margin-top: 40px;
+      color: #605e5c;
+      font-size: 14px;
+    }
+    .loading {
+      display: none;
+      text-align: center;
+      padding: 20px;
+    }
+    .loading::after {
+      content: '';
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 2px solid #f3f3f3;
+      border-top: 2px solid #0078d4;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <img src="/logo.png" alt="Woodgrove Bank Logo">
+      <h1>Woodgrove Bank Receipt Analyzer</h1>
+    </div>
+    
+    <div id="dropzone" class="upload-box" onclick="document.getElementById('fileInput').click();">
+      <div id="dropText">Drag & Drop your receipt image here or click to select</div>
+    </div>
+    
+    <input type="file" id="fileInput" style="display: none" accept="image/*">
+    
+    <div id="loading" class="loading">Analyzing receipt...</div>
+    
+    <div id="results" class="receipt-details" style="display: none;">
+      <h2>Receipt Details</h2>
+      <div id="receiptFields"></div>
+    </div>
+
+    <div class="footer">&copy; 2025 Woodgrove Bank | AI-102 Demo</div>
+  </div>
+
+  <script>
+    const dropzone = document.getElementById('dropzone');
+    const fileInput = document.getElementById('fileInput');
+    const loading = document.getElementById('loading');
+    const results = document.getElementById('results');
+    const receiptFields = document.getElementById('receiptFields');
+    let selectedFile = null;
+
+    // Check if receipt.jpg exists and pre-select it
+    fetch('receipt.jpg', { method: 'HEAD' })
+      .then(res => {
+        if (res.ok) {
+          fetch('receipt.jpg')
+            .then(r => r.blob())
+            .then(blob => {
+              const file = new File([blob], 'receipt.jpg', { type: blob.type });
+              setFile(file);
+              uploadFile(file);
+            });
+        }
+      });
+
+    function setFile(file) {
+      selectedFile = file;
+      dropzone.textContent = `Selected: ${file.name}`;
+    }
+
+    // Handle drag and drop
+    dropzone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropzone.style.borderColor = '#0078d4';
+    });
+
+    dropzone.addEventListener('dragleave', (e) => {
+      e.preventDefault();
+      dropzone.style.borderColor = '#d1d1d1';
+    });
+
+    dropzone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropzone.style.borderColor = '#d1d1d1';
+      const file = e.dataTransfer.files[0];
+      if (file && file.type.startsWith('image/')) {
+        setFile(file);
+        uploadFile(file);
+      }
+    });
+
+    // Handle file input change
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        setFile(file);
+        uploadFile(file);
+      }
+    });
+
+    function uploadFile(file) {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      loading.style.display = 'block';
+      results.style.display = 'none';
+
+      fetch('/upload', {
+        method: 'POST',
+        body: formData
+      })
+      .then(response => response.json())
+      .then(data => {
+        loading.style.display = 'none';
+        results.style.display = 'block';
+        displayResults(data);
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        loading.style.display = 'none';
+        alert('Error analyzing receipt. Please try again.');
+      });
+    }
+
+    function displayResults(data) {
+      receiptFields.innerHTML = '';
+      console.log('Receipt data:', data);
+
+      // Create table for receipt details
+      const table = document.createElement('table');
+      table.className = 'receipt-table';
+      
+      // Helper function to add a row
+      function addRow(label, value) {
+        if (value) {
+          const row = table.insertRow();
+          const labelCell = row.insertCell();
+          const valueCell = row.insertCell();
+          labelCell.textContent = label;
+          valueCell.textContent = value;
+        }
+      }
+
+      // Add receipt fields
+      addRow('Merchant', data.merchant);
+      addRow('Date', data.date);
+      addRow('Subtotal', data.subtotal);
+      addRow('Tax', data.tax);
+      addRow('Total', data.total);
+
+      // Add items if available
+      if (data.items?.length > 0) {
+        const row = table.insertRow();
+        const labelCell = row.insertCell();
+        const valueCell = row.insertCell();
+        labelCell.textContent = 'Items';
+        
+        const itemsList = document.createElement('div');
+        itemsList.className = 'items-list';
+        
+        data.items.forEach(item => {
+          if (item.description) {
+            const itemText = document.createElement('div');
+            itemText.textContent = `${item.description} - ${item.price || 'N/A'}`;
+            itemsList.appendChild(itemText);
+          }
+        });
+        
+        valueCell.appendChild(itemsList);
+      }
+
+      receiptFields.appendChild(table);
+    }
+  </script>
+</body>
+</html>
+<!-- [>> CODE END <<] --> 

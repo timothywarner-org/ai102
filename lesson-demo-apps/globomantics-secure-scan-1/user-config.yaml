@@ -1,0 +1,7 @@
+# CodeQL User Configuration
+# This file defines custom queries and settings for CodeQL analysis.
+
+queries:
+  - ./queries/javascript/security-suite.qls
+
+# Additional settings can be added here as needed.

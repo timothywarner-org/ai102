@@ -1,0 +1,112 @@
+name: "CodeQL Security Analysis"
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    - cron: '0 0 * * 0'  # Run once a week at midnight on Sunday
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Reason for manual trigger'
+        required: false
+        default: 'Manual security scan'
+      use_ghcr:
+        description: 'Use GHCR package instead of repo reference'
+        type: boolean
+        required: false
+        default: false
+
+jobs:
+  analyze:
+    name: Analyze
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+      packages: read
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Fetch all history for proper change detection
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+      
+    # Cache the CodeQL databases for faster analysis
+    - name: Cache CodeQL databases
+      uses: actions/cache@v3
+      with:
+        path: ~/.codeql/databases
+        key: ${{ runner.os }}-codeql-db-${{ github.sha }}
+        restore-keys: |
+          ${{ runner.os }}-codeql-db-
+
+    # Method 1: Using direct repository reference (default)
+    - name: Initialize CodeQL with Repository Reference
+      if: ${{ !github.event.inputs.use_ghcr || github.event.inputs.use_ghcr == 'false' }}
+      uses: github/codeql-action/init@v2
+      with:
+        languages: javascript
+        # Direct reference to the organization repository
+        queries: timothywarner-org/globomantics-secure-scan@main
+        # Enable additional query packs for enhanced coverage
+        packs: +security-extended,security-and-quality
+
+    # Method 2: Using GitHub Container Registry package
+    - name: Initialize CodeQL with GHCR Package
+      if: ${{ github.event.inputs.use_ghcr == 'true' }}
+      uses: github/codeql-action/init@v2
+      with:
+        languages: javascript
+        # Using the GitHub Container Registry package reference
+        packs: +security-extended,security-and-quality,timothywarner-org/globomantics-secure-scan@1.0.0
+
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v2
+      with:
+        category: "/language:javascript"
+        upload: true # Upload SARIF results to GitHub Advanced Security
+
+    - name: Upload CodeQL Database
+      uses: actions/upload-artifact@v3
+      with:
+        name: codeql-database
+        path: ~/.codeql/databases
+        retention-days: 7
+        if-no-files-found: warn
+    
+    - name: Generate CodeQL Analysis Summary (Repository Reference)
+      if: ${{ !github.event.inputs.use_ghcr || github.event.inputs.use_ghcr == 'false' }}
+      id: summary-repo
+      run: |
+        echo "## CodeQL Analysis Summary" >> $GITHUB_STEP_SUMMARY
+        echo "🔍 Analysis completed using org-scoped custom query pack" >> $GITHUB_STEP_SUMMARY
+        echo "📊 Query pack: timothywarner-org/globomantics-secure-scan@main (direct repository reference)" >> $GITHUB_STEP_SUMMARY
+        echo "⏱️ Analysis completed at: $(date)" >> $GITHUB_STEP_SUMMARY
+        if [ -n "${{ github.event.inputs.reason }}" ]; then
+          echo "🔖 Trigger reason: ${{ github.event.inputs.reason }}" >> $GITHUB_STEP_SUMMARY
+        fi
+
+    - name: Generate CodeQL Analysis Summary (GHCR Package)
+      if: ${{ github.event.inputs.use_ghcr == 'true' }}
+      id: summary-ghcr
+      run: |
+        echo "## CodeQL Analysis Summary" >> $GITHUB_STEP_SUMMARY
+        echo "🔍 Analysis completed using org-scoped custom query pack" >> $GITHUB_STEP_SUMMARY
+        echo "📊 Query pack: timothywarner-org/globomantics-secure-scan@1.0.0 (from GHCR)" >> $GITHUB_STEP_SUMMARY
+        echo "⏱️ Analysis completed at: $(date)" >> $GITHUB_STEP_SUMMARY
+        if [ -n "${{ github.event.inputs.reason }}" ]; then
+          echo "🔖 Trigger reason: ${{ github.event.inputs.reason }}" >> $GITHUB_STEP_SUMMARY
+        fi 

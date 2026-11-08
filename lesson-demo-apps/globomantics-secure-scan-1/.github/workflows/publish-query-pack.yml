@@ -1,0 +1,73 @@
+name: Publish CodeQL Query Pack
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'globomantics-secure-scan/**'
+      - '.github/workflows/publish-query-pack.yml'
+  release:
+    types: [ published ]
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download and setup CodeQL CLI
+        id: setup-codeql
+        run: |
+          CODEQL_VERSION="2.15.5"
+          curl -sSL -o codeql.zip https://github.com/github/codeql-cli-binaries/releases/download/v${CODEQL_VERSION}/codeql-linux64.zip
+          unzip -q codeql.zip
+          echo "$PWD/codeql" >> $GITHUB_PATH
+          echo "CODEQL_PATH=$PWD/codeql" >> $GITHUB_ENV
+
+      - name: Verify CodeQL CLI availability
+        run: |
+          codeql --version || { echo "CodeQL CLI not found"; exit 1; }
+
+      - name: Log in to GitHub Container Registry (GHCR)
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.TIM_GITHUB_PAT }}
+
+      - name: Install CodeQL pack dependencies
+        working-directory: ./globomantics-secure-scan
+        run: |
+          codeql pack install || {
+            echo "::error ::Failed to install CodeQL pack dependencies. Check that dependencies are spelled correctly and published.";
+            exit 1;
+          }
+
+      - name: Validate pack structure
+        run: |
+          test -d globomantics-secure-scan || { echo "::error ::Missing globomantics-secure-scan directory"; exit 1; }
+          test -f globomantics-secure-scan/qlpack.yml || { echo "::error ::Missing qlpack.yml"; exit 1; }
+          test -d globomantics-secure-scan/queries || { echo "::error ::Missing queries directory"; exit 1; }
+
+      - name: Build and publish CodeQL pack
+        env:
+          GITHUB_TOKEN: ${{ secrets.TIM_GITHUB_PAT }}
+        working-directory: ./globomantics-secure-scan
+        run: |
+          echo "Building pack..."
+          codeql pack build . || {
+            echo "::error ::Failed to build CodeQL pack.";
+            exit 1;
+          }
+
+          echo "Publishing pack..."
+          codeql pack publish --registry=ghcr.io/timothywarner-org . || {
+            echo "::error ::Failed to publish CodeQL pack.";
+            exit 1;
+          }

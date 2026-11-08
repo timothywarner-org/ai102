@@ -1,0 +1,64 @@
+{
+    "name": "AI-102 Fast Dev Environment",
+    "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "GitHub.copilot",
+                "GitHub.github-vscode-theme",
+                "ms-python.python",
+                "ms-python.vscode-pylance",
+                "ms-vscode.node-debug2",
+                "file-icons.file-icons",
+                "eamodio.gitlens",
+                "ms-azuretools.vscode-docker",
+                "daltonmenezes.aura-theme"
+            ],
+            "settings": {
+                "workbench.colorTheme": "GitHub Dark Colorblind (Beta)",
+                "workbench.iconTheme": "file-icons",
+                "workbench.font.family": "JetBrains Mono",
+                "editor.fontFamily": "JetBrains Mono",
+                "editor.fontSize": 14,
+                "editor.fontLigatures": true,
+                "editor.minimap.enabled": true,
+                "editor.scrollbar.smoothScrolling": true,
+                "editor.mouseWheelZoom": true,
+                "editor.formatOnSave": true,
+                "editor.defaultFormatter": "ms-python.python",
+                "terminal.integrated.defaultProfile.linux": "bash",
+                "terminal.integrated.profiles.linux": {
+                    "bash": {
+                        "path": "bash",
+                        "icon": "terminal-bash"
+                    }
+                }
+            }
+        }
+    },
+    "workspaceFolder": "/workspace",
+    "workspaceMount": "source=${localWorkspaceFolder},target=/workspace",
+    "runArgs": ["--init"],
+    "features": {
+        "ghcr.io/devcontainers/features/python:1": {
+            "version": "latest",
+            "installJupyterlab": false
+        },
+        "ghcr.io/devcontainers/features/node:1": {
+            "version": "lts"
+        },
+        "ghcr.io/devcontainers/features/git:1": {
+            "version": "latest",
+            "ppa": true
+        },
+        "ghcr.io/devcontainers/features/git-lfs:1": {},
+        "ghcr.io/devcontainers/features/github-cli:1": {}
+    },
+    "postCreateCommand": "pip install --upgrade pip && if [ -f requirements.txt ]; then pip install -r requirements.txt; fi && npm install -g typescript @types/node",
+    "disableSettingsSync": true,
+    "hostRequirements": {
+        "cpus": 2,
+        "memory": "4gb",
+        "storage": "32gb"
+    }
+}
