@@ -21,12 +21,12 @@
     "cookie-parser": "^1.4.6",
     "dotenv": "^16.0.1",
     "ejs": "^3.1.8",
-    "express": "^4.22.2",
+    "express": "^4.22.3",
     "express-session": "^1.17.3",
     "jsonwebtoken": "^9.0.0",
-    "moment": "^2.29.4",
+    "moment": "^2.31.0",
     "mongoose": "^6.13.9",
-    "multer": "^2.1.1",
+    "multer": "^2.5.0",
     "winston": "^3.8.1"
   },
   "devDependencies": {
